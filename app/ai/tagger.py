@@ -1,18 +1,19 @@
-import base64
+import json
 from datetime import date
 from pathlib import Path
 
-from openai import AsyncOpenAI
+from google import genai
+from google.genai import types
 
 from app.config import settings
 
-_client: AsyncOpenAI | None = None
+_client: genai.Client | None = None
 
 
-def _get_client() -> AsyncOpenAI:
+def _get_client() -> genai.Client:
     global _client
     if _client is None:
-        _client = AsyncOpenAI(api_key=settings.openai_api_key)
+        _client = genai.Client(api_key=settings.gemini_api_key)
     return _client
 
 
@@ -28,35 +29,27 @@ Rules:
 
 
 async def generate_tags(image_path: Path) -> list[str]:
-    if not settings.openai_api_key:
+    if not settings.gemini_api_key:
         return []
 
-    image_data = base64.standard_b64encode(image_path.read_bytes()).decode()
+    image_bytes = image_path.read_bytes()
     suffix = image_path.suffix.lower()
     mime = "image/jpeg" if suffix in (".jpg", ".jpeg") else f"image/{suffix.lstrip('.')}"
 
     client = _get_client()
-    response = await client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "image_url",
-                        "image_url": {"url": f"data:{mime};base64,{image_data}", "detail": "low"},
-                    }
-                ],
-            },
+    response = await client.aio.models.generate_content(
+        model=settings.gemini_model,
+        contents=[
+            types.Part.from_bytes(data=image_bytes, mime_type=mime),
+            SYSTEM_PROMPT,
         ],
-        max_tokens=200,
-        temperature=0,
+        config=types.GenerateContentConfig(
+            temperature=0,
+            max_output_tokens=200,
+        ),
     )
 
-    raw = response.choices[0].message.content.strip()
-
-    import json
+    raw = response.text.strip()
     try:
         tags = json.loads(raw)
         if isinstance(tags, list):

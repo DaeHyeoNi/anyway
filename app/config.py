@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     admin_password: str = ""
     secret_key: str = "change-me-in-production"
 
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-3.1-flash-preview"
+
     openai_api_key: str = ""
 
     # Cloudflare R2 (optional)
