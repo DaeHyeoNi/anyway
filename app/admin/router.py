@@ -126,6 +126,10 @@ async def upload_photo(
     for file in files:
         try:
             content = await file.read()
+            logger.info("upload: %s size=%d content_type=%s", file.filename, len(content), file.content_type)
+            if not content:
+                errors.append(f"{file.filename}: 파일이 비어있습니다 (0 bytes)")
+                continue
             await create_photo_from_upload(
                 file_bytes=content,
                 content_type=file.content_type,
