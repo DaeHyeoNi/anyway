@@ -22,6 +22,8 @@ async def index(request: Request):
 
 from app.photos.router import router as photos_router  # noqa: E402
 from app.admin.router import router as admin_router  # noqa: E402
+from app.tools.router import router as tools_router  # noqa: E402
 
 app.include_router(photos_router)
 app.include_router(admin_router)
+app.include_router(tools_router)

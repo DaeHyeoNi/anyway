@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Tick → DateTime · DaeHyun Kim{% endblock %}
+
+{% block content %}
+<div class="flex flex-col gap-6 max-w-xl">
+    <div class="flex items-center justify-between">
+        <h1 class="text-sm text-neutral-400 uppercase tracking-widest">Tick → DateTime</h1>
+        <a href="/tools/" class="text-xs text-neutral-400 hover:text-neutral-700 transition">← tools</a>
+    </div>
+
+    <div class="flex flex-col items-center gap-4 py-12 bg-[#BFD841] rounded-xl">
+        <input
+            type="text"
+            id="ticks"
+            placeholder="ticks"
+            size="17"
+            autofocus
+            class="font-mono text-xl px-4 py-2 bg-[#85A71E] border-none rounded-lg text-[#F3F4F1] outline-none placeholder-[#F3F4F1] shadow-lg"
+        >
+        <div class="text-2xl text-[#85a71e]">↓</div>
+        <div id="datetime" class="font-mono text-2xl text-[#85a71e]">
+            <b class="text-[#0c304a] font-normal">0001</b>-<b class="text-[#0c304a] font-normal">01</b>-<b class="text-[#0c304a] font-normal">01</b><span class="px-2">T</span><b class="text-[#0c304a] font-normal">00</b>:<b class="text-[#0c304a] font-normal">00</b>:<b class="text-[#0c304a] font-normal">00</b>.<b class="text-[#0c304a] font-normal">000Z</b>
+        </div>
+        <p id="kst-label" class="text-sm italic text-[#85a71e] opacity-0 transition-opacity duration-500">한국 시간 (KST) +9 기준</p>
+    </div>
+</div>
+
+<script>
+    var epochTicks = 621355968000000000;
+    var ticksPerMillisecond = 10000;
+    var maxDateMilliseconds = 8640000000000000;
+    var congratulationsTimer;
+
+    var ticksToDateString = function (ticks) {
+        if (isNaN(ticks)) return "NANA-NA-NATNA:NA:BA.TMAN";
+        var ticksSinceEpoch = ticks - epochTicks + 324000000000;
+        var millisecondsSinceEpoch = ticksSinceEpoch / ticksPerMillisecond;
+        if (millisecondsSinceEpoch > maxDateMilliseconds) return "+WHOAWH-OA-ISTOO:FA:RA.WAYZ";
+        var date = new Date(millisecondsSinceEpoch);
+        return date.toISOString();
+    };
+
+    var doWork = function () {
+        var dateTimeOutput = document.getElementById("datetime");
+        var kstLabel = document.getElementById("kst-label");
+        var ticks = parseInt(this.value || 0, 10);
+        var dateString = ticksToDateString(ticks);
+
+        var firstTIndex = dateString.indexOf("T");
+        var datePart = dateString.slice(0, firstTIndex);
+        var timePart = dateString.slice(firstTIndex + 1);
+
+        var goodParts = /([A-Z0-9]+)/g;
+        var wrapParts = '<b class="text-[#0c304a] font-normal">$1</b>';
+
+        dateTimeOutput.innerHTML =
+            datePart.replace(goodParts, wrapParts) +
+            '<span class="px-2">T</span>' +
+            timePart.replace(goodParts, wrapParts);
+
+        var ticksLength = this.value.length;
+        if (ticksLength != this.size) {
+            this.size = Math.max(17, Math.min(ticksLength, 30));
+        }
+
+        if (congratulationsTimer) clearTimeout(congratulationsTimer);
+        if (ticks != 0) {
+            congratulationsTimer = setTimeout(function () {
+                kstLabel.style.opacity = "1";
+            }, 1000);
+        } else {
+            kstLabel.style.opacity = "0";
+        }
+    };
+
+    window.onload = function () {
+        var ticksInput = document.getElementById("ticks");
+        doWork.call(ticksInput);
+        ticksInput.oninput = doWork;
+    };
+</script>
+{% endblock %}
