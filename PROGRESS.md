@@ -121,7 +121,6 @@ album_photos
 - [ ] Cloudflare R2 연동 (Standard 스토리지, 버킷: anyway-photos) — Pi 배포 시점에 진행
 - [ ] 로컬 storage/ → R2 마이그레이션 스크립트
 - [ ] Nginx 리버스 프록시
-- [ ] HTTPS (Let's Encrypt)
 - [ ] Docker Compose 완성
 - [ ] Raspberry Pi 배포
 
