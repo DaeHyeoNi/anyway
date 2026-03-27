@@ -127,7 +127,7 @@ async def upload_photo(
         try:
             await file.seek(0)
             content = await file.read()
-            logger.info("upload: %s size=%d content_type=%s", file.filename, len(content), file.content_type)
+            logger.warning("upload: %s size=%d content_type=%s", file.filename, len(content), file.content_type)
             if not content:
                 errors.append(f"{file.filename}: 파일이 비어있습니다 (0 bytes)")
                 continue
