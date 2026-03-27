@@ -9,6 +9,7 @@ from app.ai.analyzer import extract_color_palette, extract_exif, reverse_geocode
 from app.ai.tagger import generate_tags
 from app.config import settings
 from app.photos.models import Photo
+from app.storage import delete_file, is_r2_enabled, upload_file
 
 
 ALLOWED_FORMATS = {"JPEG", "PNG", "WEBP", "HEIF", "MPO"}
@@ -41,16 +42,20 @@ async def create_photo_from_upload(
     orig_path = storage / "originals" / filename
     thumb_path = storage / "thumbnails" / filename
 
-    # 원본 저장
+    # 원본 저장 (로컬 — EXIF/썸네일 처리용)
     orig_path.write_bytes(file_bytes)
 
     # 썸네일 생성
+    import io as _io
     with Image.open(orig_path) as img:
         img = ImageOps.exif_transpose(img)  # EXIF 회전 보정
         width, height = img.size
+        thumb_buf = _io.BytesIO()
         thumb = img.copy()
         thumb.thumbnail(THUMB_SIZE, Image.LANCZOS)
-        thumb.save(thumb_path, quality=85, optimize=True)
+        thumb.save(thumb_buf, format="JPEG", quality=85, optimize=True)
+        thumb_bytes = thumb_buf.getvalue()
+        thumb_path.write_bytes(thumb_bytes)
 
     # EXIF 파싱
     exif = extract_exif(orig_path)
@@ -66,12 +71,23 @@ async def create_photo_from_upload(
     # AI 태깅 (API 키 없으면 스킵)
     tags = await generate_tags(orig_path)
 
+    # R2 업로드 (설정된 경우)
+    if is_r2_enabled():
+        storage_url = await upload_file(f"originals/{filename}", file_bytes, "image/jpeg")
+        thumb_url = await upload_file(f"thumbnails/{filename}", thumb_bytes, "image/jpeg")
+        # 로컬 파일 제거
+        orig_path.unlink(missing_ok=True)
+        thumb_path.unlink(missing_ok=True)
+    else:
+        storage_url = f"/storage/originals/{filename}"
+        thumb_url = f"/storage/thumbnails/{filename}"
+
     # 수동 입력값으로 EXIF 빈 필드 보완 (EXIF 우선)
     override = meta_override or {}
     photo = Photo(
         filename=filename,
-        storage_url=f"/storage/originals/{filename}",
-        thumb_url=f"/storage/thumbnails/{filename}",
+        storage_url=storage_url,
+        thumb_url=thumb_url,
         width=width,
         height=height,
         file_size=len(file_bytes),
@@ -174,12 +190,16 @@ async def delete_photo(photo_id: int, db: AsyncSession) -> bool:
     photo = await get_photo(photo_id, db)
     if not photo:
         return False
-    storage = Path(settings.storage_path)
-    for path in (
-        storage / "originals" / photo.filename,
-        storage / "thumbnails" / photo.filename,
-    ):
-        path.unlink(missing_ok=True)
+    if is_r2_enabled():
+        await delete_file(f"originals/{photo.filename}")
+        await delete_file(f"thumbnails/{photo.filename}")
+    else:
+        storage = Path(settings.storage_path)
+        for path in (
+            storage / "originals" / photo.filename,
+            storage / "thumbnails" / photo.filename,
+        ):
+            path.unlink(missing_ok=True)
     await db.delete(photo)
     await db.commit()
     return True
