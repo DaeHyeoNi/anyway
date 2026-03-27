@@ -20,6 +20,7 @@ async def create_photo_from_upload(
     content_type: str,
     original_filename: str,
     db: AsyncSession,
+    meta_override: dict | None = None,
 ) -> Photo:
 
     import io
@@ -65,6 +66,8 @@ async def create_photo_from_upload(
     # AI 태깅 (API 키 없으면 스킵)
     tags = await generate_tags(orig_path)
 
+    # 수동 입력값으로 EXIF 빈 필드 보완 (EXIF 우선)
+    override = meta_override or {}
     photo = Photo(
         filename=filename,
         storage_url=f"/storage/originals/{filename}",
@@ -74,10 +77,21 @@ async def create_photo_from_upload(
         file_size=len(file_bytes),
         color_palette=palette if palette else None,
         ai_tags=tags if tags else None,
-        location=location,
+        location=location or override.get("location") or None,
+        title=override.get("title") or None,
+        description=override.get("description") or None,
         is_published=True,
-        **exif,
+        **{k: v for k, v in exif.items() if v is not None},
     )
+    # EXIF에 없는 카메라/날짜는 수동 입력으로 채움
+    if not photo.camera and override.get("camera"):
+        photo.camera = override["camera"]
+    if not photo.taken_at and override.get("taken_at"):
+        from datetime import datetime
+        try:
+            photo.taken_at = datetime.strptime(override["taken_at"], "%Y-%m-%d")
+        except ValueError:
+            pass
     db.add(photo)
     await db.commit()
     await db.refresh(photo)

@@ -11,37 +11,65 @@
     {% if success %}
     <p class="text-sm text-green-600">{{ success }}</p>
     {% endif %}
-
     {% if error %}
     <p class="text-sm text-red-500 whitespace-pre-line">{{ error }}</p>
     {% endif %}
 
     <form method="post" action="/manage/photos/upload" enctype="multipart/form-data"
-          class="flex flex-col gap-4"
-          x-data="{ dragging: false, files: [] }"
-          @dragover.prevent="dragging = true"
-          @dragleave.prevent="dragging = false"
-          @drop.prevent="dragging = false; files = Array.from($event.dataTransfer.files)">
+          class="flex flex-col gap-5"
+          x-data="{ files: [] }"
+          @dragover.prevent
+          @drop.prevent="files = Array.from($event.dataTransfer.files)">
 
-        <label
-            class="border-2 border-dashed rounded-lg p-10 text-center cursor-pointer transition"
-            :class="dragging ? 'border-neutral-400 bg-neutral-100' : 'border-neutral-200 hover:border-neutral-300'"
-        >
+        {# 파일 선택 #}
+        <label class="border-2 border-dashed border-neutral-200 rounded-lg p-8 text-center cursor-pointer hover:border-neutral-300 transition"
+               :class="files.length > 0 ? 'border-neutral-400' : ''">
             <input type="file" name="files" accept="image/*" multiple class="hidden"
                    @change="files = Array.from($event.target.files)">
             <p class="text-sm text-neutral-400">클릭하거나 이미지를 드래그하세요</p>
             <p class="text-xs text-neutral-300 mt-1">JPG, PNG, WEBP — 다중 선택 가능</p>
-            <template x-if="files.length > 0">
-                <p class="text-sm text-neutral-600 mt-3" x-text="`${files.length}개 선택됨`"></p>
-            </template>
+            <p class="text-sm text-neutral-600 mt-3 font-medium" x-show="files.length > 0" x-text="`${files.length}개 선택됨`"></p>
         </label>
 
-        <button
-            type="submit"
-            class="bg-neutral-800 text-white text-sm py-2 rounded hover:bg-neutral-700 transition"
-            :disabled="files.length === 0"
-            :class="files.length === 0 ? 'opacity-40 cursor-not-allowed' : ''"
-        >
+        {# 메타데이터 입력 #}
+        <div class="flex flex-col gap-3 border border-neutral-100 rounded-lg p-4">
+            <p class="text-xs text-neutral-400 uppercase tracking-wider">메타데이터 <span class="normal-case">(EXIF 없을 때 사용)</span></p>
+
+            <div class="flex flex-col gap-1">
+                <label class="text-xs text-neutral-400">제목</label>
+                <input type="text" name="title" placeholder="사진 제목"
+                       class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label class="text-xs text-neutral-400">위치</label>
+                <input type="text" name="location" placeholder="예: Seoul, South Korea"
+                       class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label class="text-xs text-neutral-400">카메라</label>
+                <input type="text" name="camera" placeholder="예: Sony A7C II"
+                       class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label class="text-xs text-neutral-400">촬영일</label>
+                <input type="date" name="taken_at"
+                       class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label class="text-xs text-neutral-400">설명</label>
+                <textarea name="description" placeholder="사진 설명" rows="2"
+                          class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition resize-none"></textarea>
+            </div>
+        </div>
+
+        <button type="submit"
+                class="bg-neutral-800 text-white text-sm py-2 rounded hover:bg-neutral-700 transition"
+                :class="files.length === 0 ? 'opacity-40 cursor-not-allowed' : ''"
+                :disabled="files.length === 0">
             업로드
         </button>
     </form>

@@ -64,11 +64,24 @@ async def upload_page(request: Request, _=Depends(require_admin)):
 async def upload_photo(
     request: Request,
     files: list[UploadFile] = File(...),
+    title: str = Form(""),
+    location: str = Form(""),
+    camera: str = Form(""),
+    taken_at: str = Form(""),
+    description: str = Form(""),
     db: AsyncSession = Depends(get_db),
     _=Depends(require_admin),
 ):
     if isinstance(_, RedirectResponse):
         return _
+
+    meta_override = {
+        "title": title.strip(),
+        "location": location.strip(),
+        "camera": camera.strip(),
+        "taken_at": taken_at.strip(),
+        "description": description.strip(),
+    }
 
     errors = []
     count = 0
@@ -80,6 +93,7 @@ async def upload_photo(
                 content_type=file.content_type,
                 original_filename=file.filename,
                 db=db,
+                meta_override=meta_override,
             )
             count += 1
         except Exception as e:
