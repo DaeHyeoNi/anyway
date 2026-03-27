@@ -17,51 +17,56 @@
 
     <form method="post" action="/manage/photos/upload" enctype="multipart/form-data"
           class="flex flex-col gap-5"
-          x-data="{ files: [] }"
+          x-data="uploadForm()"
           @dragover.prevent
-          @drop.prevent="files = Array.from($event.dataTransfer.files)">
+          @drop.prevent="handleFiles($event.dataTransfer.files)">
 
         {# 파일 선택 #}
-        <label class="border-2 border-dashed border-neutral-200 rounded-lg p-8 text-center cursor-pointer hover:border-neutral-300 transition"
-               :class="files.length > 0 ? 'border-neutral-400' : ''">
+        <label class="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition"
+               :class="files.length > 0 ? 'border-neutral-400' : 'border-neutral-200 hover:border-neutral-300'">
             <input type="file" name="files" accept="image/*" multiple class="hidden"
-                   @change="files = Array.from($event.target.files)">
+                   @change="handleFiles($event.target.files)">
             <p class="text-sm text-neutral-400">클릭하거나 이미지를 드래그하세요</p>
             <p class="text-xs text-neutral-300 mt-1">JPG, PNG, WEBP — 다중 선택 가능</p>
             <p class="text-sm text-neutral-600 mt-3 font-medium" x-show="files.length > 0" x-text="`${files.length}개 선택됨`"></p>
         </label>
 
         {# 메타데이터 입력 #}
-        <div class="flex flex-col gap-3 border border-neutral-100 rounded-lg p-4">
-            <p class="text-xs text-neutral-400 uppercase tracking-wider">메타데이터 <span class="normal-case">(EXIF 없을 때 사용)</span></p>
+        <div class="flex flex-col gap-3 border border-neutral-100 rounded-lg p-4 relative">
+            <div class="flex items-center justify-between">
+                <p class="text-xs text-neutral-400 uppercase tracking-wider">
+                    메타데이터 <span class="normal-case">(EXIF 없을 때 사용)</span>
+                </p>
+                <span x-show="loading" class="text-xs text-neutral-400 animate-pulse">EXIF 읽는 중…</span>
+            </div>
 
             <div class="flex flex-col gap-1">
                 <label class="text-xs text-neutral-400">제목</label>
-                <input type="text" name="title" placeholder="사진 제목"
+                <input type="text" name="title" x-model="meta.title" placeholder="사진 제목"
                        class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
             </div>
 
             <div class="flex flex-col gap-1">
                 <label class="text-xs text-neutral-400">위치</label>
-                <input type="text" name="location" placeholder="예: Seoul, South Korea"
+                <input type="text" name="location" x-model="meta.location" placeholder="예: Seoul, South Korea"
                        class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
             </div>
 
             <div class="flex flex-col gap-1">
                 <label class="text-xs text-neutral-400">카메라</label>
-                <input type="text" name="camera" placeholder="예: Sony A7C II"
+                <input type="text" name="camera" x-model="meta.camera" placeholder="예: Galaxy S25+"
                        class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
             </div>
 
             <div class="flex flex-col gap-1">
                 <label class="text-xs text-neutral-400">촬영일</label>
-                <input type="date" name="taken_at"
+                <input type="date" name="taken_at" x-model="meta.taken_at"
                        class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
             </div>
 
             <div class="flex flex-col gap-1">
                 <label class="text-xs text-neutral-400">설명</label>
-                <textarea name="description" placeholder="사진 설명" rows="2"
+                <textarea name="description" x-model="meta.description" placeholder="사진 설명" rows="2"
                           class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition resize-none"></textarea>
             </div>
         </div>
@@ -74,4 +79,34 @@
         </button>
     </form>
 </div>
+
+<script>
+function uploadForm() {
+    return {
+        files: [],
+        loading: false,
+        meta: { title: '', location: '', camera: '', taken_at: '', description: '' },
+
+        async handleFiles(fileList) {
+            this.files = Array.from(fileList);
+            if (this.files.length !== 1) return; // 단일 파일일 때만 EXIF 자동 채우기
+
+            this.loading = true;
+            try {
+                const formData = new FormData();
+                formData.append('file', this.files[0]);
+                const res = await fetch('/manage/photos/exif', { method: 'POST', body: formData });
+                const exif = await res.json();
+                if (exif.camera)    this.meta.camera    = exif.camera;
+                if (exif.taken_at)  this.meta.taken_at  = exif.taken_at;
+                if (exif.location)  this.meta.location  = exif.location;
+            } catch (e) {
+                // EXIF 실패해도 조용히 무시
+            } finally {
+                this.loading = false;
+            }
+        }
+    }
+}
+</script>
 {% endblock %}

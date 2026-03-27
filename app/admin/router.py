@@ -60,6 +60,37 @@ async def upload_page(request: Request, _=Depends(require_admin)):
     return templates.TemplateResponse(request, "admin/upload.html", {"error": None, "success": None})
 
 
+@router.post("/photos/exif")
+async def read_exif(
+    file: UploadFile = File(...),
+    _=Depends(require_admin),
+):
+    """파일 선택 시 EXIF 파싱 결과 반환 (폼 자동 채우기용)"""
+    if isinstance(_, RedirectResponse):
+        return {}
+    from pathlib import Path
+    from app.ai.analyzer import extract_exif, reverse_geocode
+    import tempfile, shutil
+
+    suffix = Path(file.filename).suffix.lower() or ".jpg"
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+        shutil.copyfileobj(file.file, tmp)
+        tmp_path = Path(tmp.name)
+
+    try:
+        exif = extract_exif(tmp_path)
+        location = None
+        if "latitude" in exif and "longitude" in exif:
+            location = await reverse_geocode(exif["latitude"], exif["longitude"])
+        return {
+            "camera": exif.get("camera", ""),
+            "taken_at": exif["taken_at"].strftime("%Y-%m-%d") if exif.get("taken_at") else "",
+            "location": location or "",
+        }
+    finally:
+        tmp_path.unlink(missing_ok=True)
+
+
 @router.post("/photos/upload")
 async def upload_photo(
     request: Request,
