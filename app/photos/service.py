@@ -30,8 +30,8 @@ async def create_photo_from_upload(
                 raise ValueError(f"지원하지 않는 이미지 형식: {probe.format}")
     except ValueError:
         raise
-    except Exception:
-        raise ValueError(f"이미지를 열 수 없습니다: {original_filename}")
+    except Exception as e:
+        raise ValueError(f"이미지를 열 수 없습니다: {original_filename} ({type(e).__name__}: {e})")
 
     ext = Path(original_filename).suffix.lower() or ".jpg"
     stem = uuid.uuid4().hex
@@ -102,7 +102,7 @@ async def get_published_photos(db: AsyncSession, tag: str | None = None) -> list
     stmt = select(Photo).where(Photo.is_published == True)
     if tag:
         stmt = stmt.where(Photo.ai_tags.contains([tag]))
-    stmt = stmt.order_by(Photo.taken_at.desc().nullslast(), Photo.created_at.desc())
+    stmt = stmt.order_by(Photo.taken_at.desc().nullslast(), Photo.id.desc())
     result = await db.execute(stmt)
     return result.scalars().all()
 
