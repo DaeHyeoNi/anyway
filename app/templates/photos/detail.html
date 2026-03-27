@@ -6,9 +6,9 @@
 <div class="flex flex-col gap-8">
     <img src="{{ photo.storage_url }}" alt="{{ photo.title or '' }}" class="w-full max-h-[80vh] object-contain">
 
-    <div class="grid grid-cols-2 gap-8 text-sm text-neutral-400">
+    <div class="grid grid-cols-2 gap-8 text-sm text-neutral-500">
         <div class="flex flex-col gap-2">
-            {% if photo.title %}<h2 class="text-white text-lg font-light">{{ photo.title }}</h2>{% endif %}
+            {% if photo.title %}<h2 class="text-neutral-800 text-lg font-light">{{ photo.title }}</h2>{% endif %}
             {% if photo.description %}<p>{{ photo.description }}</p>{% endif %}
             {% if photo.location %}<p>{{ photo.location }}</p>{% endif %}
             {% if photo.taken_at %}<p>{{ photo.taken_at.strftime('%Y.%m.%d') }}</p>{% endif %}
@@ -25,7 +25,7 @@
     {% if photo.ai_tags %}
     <div class="flex flex-wrap gap-2">
         {% for tag in photo.ai_tags %}
-        <span class="text-xs text-neutral-500 border border-neutral-800 px-2 py-1 rounded-full">{{ tag }}</span>
+        <span class="text-xs text-neutral-400 border border-neutral-200 px-2 py-1 rounded-full">{{ tag }}</span>
         {% endfor %}
     </div>
     {% endif %}
