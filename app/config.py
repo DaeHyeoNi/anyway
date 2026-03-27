@@ -26,8 +26,7 @@ class Settings(BaseSettings):
     r2_secret_key: str = ""
     r2_bucket: str = ""
 
-    class Config:
-        env_file = ".env"
+    model_config = {"env_file": ".env", "extra": "ignore"}
 
 
 settings = Settings()
