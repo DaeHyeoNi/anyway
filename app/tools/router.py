@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Request
+from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 router = APIRouter(prefix="/tools", tags=["tools"])
@@ -21,3 +22,4 @@ async def tools_index(request: Request):
 @router.get("/calc")
 async def calc(request: Request):
     return templates.TemplateResponse(request, "tools/calc.html", {})
+

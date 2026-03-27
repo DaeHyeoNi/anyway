@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Request
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
@@ -27,3 +28,9 @@ from app.tools.router import router as tools_router  # noqa: E402
 app.include_router(photos_router)
 app.include_router(admin_router)
 app.include_router(tools_router)
+
+
+# 기존 GitHub Pages URL 호환성 유지
+@app.get("/calc/")
+async def calc_legacy_redirect():
+    return RedirectResponse("/tools/calc", status_code=301)
