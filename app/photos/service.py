@@ -2,6 +2,8 @@ import uuid
 from pathlib import Path
 
 from PIL import Image, ImageOps
+from pillow_heif import register_heif_opener
+register_heif_opener()
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
