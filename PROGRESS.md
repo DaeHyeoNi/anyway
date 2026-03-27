@@ -106,9 +106,9 @@ album_photos
 - [x] 어드민 업로드 UI (드래그앤드롭, 다중 업로드)
 
 ### Phase 2 — AI 연동
-- [ ] GPT-4o mini Vision 자동 태그 생성
-- [ ] Pillow 색상 팔레트 추출
-- [ ] GPS → 지명 변환 (reverse geocoding)
+- [x] GPT-4o mini Vision 자동 태그 생성
+- [x] Pillow 색상 팔레트 추출
+- [x] GPS → 지명 변환 (Nominatim 무료 API)
 - [ ] 유사 사진 추천
 
 ### Phase 3 — UX
