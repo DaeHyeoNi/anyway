@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from fractions import Fraction
 from pathlib import Path
@@ -5,6 +6,8 @@ from pathlib import Path
 import httpx
 import piexif
 from PIL import Image
+
+logger = logging.getLogger(__name__)
 
 
 def extract_exif(image_path: Path) -> dict:
@@ -81,21 +84,29 @@ def _dms_to_decimal(dms, ref) -> float | None:
 async def reverse_geocode(lat: float, lon: float) -> str | None:
     """위경도 → 지명 (Nominatim 무료 API)"""
     try:
-        async with httpx.AsyncClient(timeout=5) as client:
+        async with httpx.AsyncClient(timeout=10) as client:
             resp = await client.get(
                 "https://nominatim.openstreetmap.org/reverse",
                 params={"lat": lat, "lon": lon, "format": "json", "zoom": 10},
-                headers={"User-Agent": "anyway-photo-site/1.0"},
+                headers={"User-Agent": "anyway-photo-site/1.0 (daehyeoni.dev)"},
             )
+            resp.raise_for_status()
             data = resp.json()
+            logger.debug("Nominatim response for (%s, %s): %s", lat, lon, data)
+            if "error" in data:
+                logger.warning("Nominatim error: %s", data["error"])
+                return None
             addr = data.get("address", {})
             parts = [
                 addr.get("city") or addr.get("town") or addr.get("village") or addr.get("county"),
                 addr.get("state"),
                 addr.get("country"),
             ]
-            return ", ".join(p for p in parts if p) or None
-    except Exception:
+            result = ", ".join(p for p in parts if p) or None
+            logger.info("reverse_geocode (%s, %s) → %s", lat, lon, result)
+            return result
+    except Exception as e:
+        logger.warning("reverse_geocode failed for (%s, %s): %s", lat, lon, e)
         return None
 
 

@@ -1,4 +1,5 @@
 import hmac
+import logging
 
 from fastapi import APIRouter, Depends, Form, Request, UploadFile, File
 from fastapi.responses import RedirectResponse
@@ -6,6 +7,8 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.deps import RequireAdmin
+
+logger = logging.getLogger(__name__)
 from app.config import settings
 from app.database import get_db
 from app.photos.service import create_photo_from_upload, get_all_photos_admin, update_photo, delete_photo
@@ -79,9 +82,13 @@ async def read_exif(
 
     try:
         exif = extract_exif(tmp_path)
+        logger.info("EXIF parsed: %s", {k: v for k, v in exif.items() if k != "taken_at"})
         location = None
         if "latitude" in exif and "longitude" in exif:
+            logger.info("GPS found: lat=%s, lon=%s — calling reverse_geocode", exif["latitude"], exif["longitude"])
             location = await reverse_geocode(exif["latitude"], exif["longitude"])
+        else:
+            logger.info("No GPS data in EXIF (keys: %s)", list(exif.keys()))
         return {
             "camera": exif.get("camera", ""),
             "taken_at": exif["taken_at"].strftime("%Y-%m-%d") if exif.get("taken_at") else "",
