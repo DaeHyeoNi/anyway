@@ -15,11 +15,11 @@
     <p class="text-sm text-red-500 whitespace-pre-line">{{ error }}</p>
     {% endif %}
 
-    <form method="post" action="/manage/photos/upload" enctype="multipart/form-data"
-          class="flex flex-col gap-5"
+    <form class="flex flex-col gap-5"
           x-data="uploadForm()"
           @dragover.prevent
-          @drop.prevent="handleFiles($event.dataTransfer.files)">
+          @drop.prevent="handleFiles($event.dataTransfer.files)"
+          @submit.prevent="submit($el)">
 
         {# 파일 선택 #}
         <label class="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition"
@@ -89,7 +89,7 @@ function uploadForm() {
 
         async handleFiles(fileList) {
             this.files = Array.from(fileList);
-            if (this.files.length !== 1) return; // 단일 파일일 때만 EXIF 자동 채우기
+            if (this.files.length !== 1) return;
 
             this.loading = true;
             try {
@@ -105,6 +105,20 @@ function uploadForm() {
             } finally {
                 this.loading = false;
             }
+        },
+
+        async submit(form) {
+            if (this.files.length === 0) return;
+            const fd = new FormData();
+            this.files.forEach(f => fd.append('files', f));
+            fd.append('title', this.meta.title);
+            fd.append('location', this.meta.location);
+            fd.append('camera', this.meta.camera);
+            fd.append('taken_at', this.meta.taken_at);
+            fd.append('description', this.meta.description);
+            const res = await fetch('/manage/photos/upload', { method: 'POST', body: fd });
+            const html = await res.text();
+            document.open(); document.write(html); document.close();
         }
     }
 }
