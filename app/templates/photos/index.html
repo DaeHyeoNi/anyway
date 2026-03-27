@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}photos · DaeHyun Kim{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+    {% for photo in photos %}
+    <a href="/photos/{{ photo.id }}" class="aspect-square overflow-hidden group">
+        <img src="{{ photo.thumb_url }}"
+             alt="{{ photo.title or '' }}"
+             class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+    </a>
+    {% else %}
+    <p class="col-span-3 text-neutral-600 text-sm">아직 사진이 없습니다.</p>
+    {% endfor %}
+</div>
+{% endblock %}

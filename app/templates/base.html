@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}DaeHyun Kim{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+</head>
+<body class="bg-neutral-950 text-neutral-100 min-h-screen">
+    <nav class="border-b border-neutral-800 px-6 py-4 flex items-center justify-between">
+        <a href="/" class="text-sm font-medium tracking-widest uppercase text-neutral-400 hover:text-white transition">DaeHyun Kim</a>
+        <a href="/photos" class="text-sm text-neutral-500 hover:text-white transition">photos</a>
+    </nav>
+
+    <main class="max-w-6xl mx-auto px-6 py-12">
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>

@@ -1,0 +1,10 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+*.db
+storage/originals/*
+storage/thumbnails/*
+!storage/originals/.gitkeep
+!storage/thumbnails/.gitkeep
+alembic.ini
