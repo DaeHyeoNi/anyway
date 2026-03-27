@@ -125,6 +125,7 @@ async def upload_photo(
     count = 0
     for file in files:
         try:
+            await file.seek(0)
             content = await file.read()
             logger.info("upload: %s size=%d content_type=%s", file.filename, len(content), file.content_type)
             if not content:
