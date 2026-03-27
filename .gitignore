@@ -8,4 +8,3 @@ storage/originals/*
 storage/thumbnails/*
 !storage/originals/.gitkeep
 !storage/thumbnails/.gitkeep
-alembic.ini
