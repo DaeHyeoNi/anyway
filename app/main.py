@@ -1,10 +1,13 @@
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import settings
 
 app = FastAPI(title=settings.app_name, debug=settings.debug)
+
+app.add_middleware(SessionMiddleware, secret_key=settings.secret_key)
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/storage", StaticFiles(directory="storage"), name="storage")
@@ -18,5 +21,7 @@ async def index(request: Request):
 
 
 from app.photos.router import router as photos_router  # noqa: E402
+from app.admin.router import router as admin_router  # noqa: E402
 
 app.include_router(photos_router)
+app.include_router(admin_router)

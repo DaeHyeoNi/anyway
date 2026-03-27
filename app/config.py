@@ -10,6 +10,11 @@ class Settings(BaseSettings):
     storage_path: str = "storage"
     thumb_size: tuple[int, int] = (800, 800)
 
+    # Admin 인증
+    admin_id: str = "admin"
+    admin_password: str = ""
+    secret_key: str = "change-me-in-production"
+
     openai_api_key: str = ""
 
     # Cloudflare R2 (optional)

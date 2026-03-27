@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Dashboard · DaeHyun Kim{% endblock %}
+
+{% block content %}
+<div class="flex flex-col gap-8">
+    <div class="flex items-center justify-between">
+        <h1 class="text-lg font-light text-neutral-700">Dashboard</h1>
+        <a href="/manage/logout" class="text-xs text-neutral-400 hover:text-neutral-700 transition">로그아웃</a>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <a href="/manage/photos/upload"
+           class="border border-neutral-200 rounded p-5 flex flex-col gap-2 hover:border-neutral-400 transition">
+            <span class="text-xs text-neutral-400 uppercase tracking-wider">사진 업로드</span>
+            <span class="text-2xl font-light text-neutral-700">+</span>
+        </a>
+    </div>
+</div>
+{% endblock %}
