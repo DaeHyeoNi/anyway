@@ -2,6 +2,7 @@ from datetime import datetime
 from fractions import Fraction
 from pathlib import Path
 
+import httpx
 import piexif
 from PIL import Image
 
@@ -73,6 +74,27 @@ def _dms_to_decimal(dms, ref) -> float | None:
         if ref in (b"S", b"W"):
             decimal *= -1
         return round(decimal, 6)
+    except Exception:
+        return None
+
+
+async def reverse_geocode(lat: float, lon: float) -> str | None:
+    """위경도 → 지명 (Nominatim 무료 API)"""
+    try:
+        async with httpx.AsyncClient(timeout=5) as client:
+            resp = await client.get(
+                "https://nominatim.openstreetmap.org/reverse",
+                params={"lat": lat, "lon": lon, "format": "json", "zoom": 10},
+                headers={"User-Agent": "anyway-photo-site/1.0"},
+            )
+            data = resp.json()
+            addr = data.get("address", {})
+            parts = [
+                addr.get("city") or addr.get("town") or addr.get("village") or addr.get("county"),
+                addr.get("state"),
+                addr.get("country"),
+            ]
+            return ", ".join(p for p in parts if p) or None
     except Exception:
         return None
 

@@ -5,7 +5,8 @@ from PIL import Image, ImageOps
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from app.ai.analyzer import extract_color_palette, extract_exif
+from app.ai.analyzer import extract_color_palette, extract_exif, reverse_geocode
+from app.ai.tagger import generate_tags
 from app.config import settings
 from app.photos.models import Photo
 
@@ -48,6 +49,14 @@ async def create_photo_from_upload(
     # 색상 팔레트
     palette = extract_color_palette(orig_path)
 
+    # GPS → 지명 변환
+    location = None
+    if "latitude" in exif and "longitude" in exif:
+        location = await reverse_geocode(exif["latitude"], exif["longitude"])
+
+    # AI 태깅 (API 키 없으면 스킵)
+    tags = await generate_tags(orig_path)
+
     photo = Photo(
         filename=filename,
         storage_url=f"/storage/originals/{filename}",
@@ -56,6 +65,8 @@ async def create_photo_from_upload(
         height=height,
         file_size=len(file_bytes),
         color_palette=palette if palette else None,
+        ai_tags=tags if tags else None,
+        location=location,
         is_published=True,
         **exif,
     )
