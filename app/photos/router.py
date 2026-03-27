@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,6 +30,30 @@ async def photo_list(request: Request, tag: str | None = None, db: AsyncSession 
 async def photo_map(request: Request, db: AsyncSession = Depends(get_db)):
     photos = await get_photos_with_gps(db)
     return templates.TemplateResponse(request, "photos/map.html", {"photos": photos})
+
+
+@router.get("/{photo_id}/data")
+async def photo_data(photo_id: int, db: AsyncSession = Depends(get_db)):
+    photo = await get_photo(photo_id, db)
+    if not photo:
+        raise HTTPException(status_code=404)
+    return {
+        "id": photo.id,
+        "title": photo.title,
+        "storage_url": photo.storage_url,
+        "thumb_url": photo.thumb_url,
+        "location": photo.location,
+        "taken_at": photo.taken_at.strftime("%Y. %-m. %-d.") if photo.taken_at else None,
+        "camera": photo.camera,
+        "lens": photo.lens,
+        "aperture": photo.aperture,
+        "shutter_speed": photo.shutter_speed,
+        "iso": photo.iso,
+        "ai_tags": photo.ai_tags or [],
+        "color_palette": photo.color_palette or [],
+        "width": photo.width,
+        "height": photo.height,
+    }
 
 
 @router.get("/{photo_id}")

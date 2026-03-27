@@ -2,19 +2,17 @@
 {% block title %}tools · DaeHyun Kim{% endblock %}
 
 {% block content %}
-<div class="flex flex-col gap-6 max-w-xl">
+<div class="flex flex-col gap-6">
     <h1 class="text-sm text-neutral-400 uppercase tracking-widest">Tools</h1>
 
-    <ul class="flex flex-col divide-y divide-neutral-100">
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
         {% for tool in tools %}
-        <li>
-            <a href="{{ tool.url }}"
-               class="flex flex-col gap-1 py-4 hover:text-neutral-600 transition group">
-                <span class="text-sm font-medium text-neutral-700 group-hover:text-neutral-900">{{ tool.name }}</span>
-                <span class="text-xs text-neutral-400">{{ tool.description }}</span>
-            </a>
-        </li>
+        <a href="{{ tool.url }}"
+           class="group border border-neutral-200 rounded-lg p-4 flex flex-col gap-2 hover:border-neutral-400 hover:shadow-sm transition">
+            <span class="text-sm font-medium text-neutral-700 group-hover:text-neutral-900">{{ tool.name }}</span>
+            <span class="text-xs text-neutral-400 leading-relaxed">{{ tool.description }}</span>
+        </a>
         {% endfor %}
-    </ul>
+    </div>
 </div>
 {% endblock %}

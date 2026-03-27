@@ -2,7 +2,9 @@
 {% block title %}photos · DaeHyun Kim{% endblock %}
 
 {% block content %}
-<div class="flex flex-col gap-6">
+<div class="flex flex-col gap-6"
+     x-data="photoGallery()"
+     @keydown.escape.window="closeModal()">
 
     {# 태그 필터 #}
     {% if all_tags %}
@@ -33,5 +35,93 @@
         {% include "photos/_grid.html" %}
     </div>
 
+    {# 모달 #}
+    <div x-show="open"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70"
+         @click.self="closeModal()"
+         style="display:none">
+
+        <div class="bg-white rounded-xl overflow-hidden max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl"
+             x-show="open"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100 scale-100"
+             x-transition:leave-end="opacity-0 scale-95">
+
+            {# 이미지 #}
+            <div class="relative flex-shrink-0">
+                <img :src="photo.storage_url" :alt="photo.title || ''"
+                     class="w-full max-h-[60vh] object-contain bg-neutral-100">
+                <button @click="closeModal()"
+                        class="absolute top-3 right-3 bg-black/40 hover:bg-black/60 text-white rounded-full w-8 h-8 flex items-center justify-center transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            {# 정보 패널 #}
+            <div class="p-5 flex flex-col gap-4 overflow-y-auto">
+                <div>
+                    <h2 class="text-lg font-semibold text-neutral-800" x-text="photo.title || ''" x-show="photo.title"></h2>
+                    <div class="flex items-center gap-1 text-sm text-neutral-400 mt-1" x-show="photo.location">
+                        <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
+                        <span x-text="photo.location"></span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 text-sm border-t border-neutral-100 pt-4"
+                     x-show="photo.camera || photo.taken_at">
+                    <div class="flex items-center gap-2 text-neutral-500" x-show="photo.camera">
+                        <svg class="w-4 h-4 shrink-0 text-neutral-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                        <span><span class="text-neutral-300">Camera Info:</span> <span x-text="photo.camera"></span></span>
+                    </div>
+                    <div class="flex items-center gap-2 text-neutral-500" x-show="photo.taken_at">
+                        <svg class="w-4 h-4 shrink-0 text-neutral-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        <span><span class="text-neutral-300">Taken Date:</span> <span x-text="photo.taken_at"></span></span>
+                    </div>
+                </div>
+
+                {# 색상 팔레트 #}
+                <div class="flex gap-1" x-show="photo.color_palette && photo.color_palette.length > 0">
+                    <template x-for="color in photo.color_palette" :key="color">
+                        <div class="w-7 h-7 rounded" :style="`background-color: ${color}`" :title="color"></div>
+                    </template>
+                </div>
+
+                {# AI 태그 #}
+                <div class="flex flex-wrap gap-2" x-show="photo.ai_tags && photo.ai_tags.length > 0">
+                    <template x-for="tag in photo.ai_tags" :key="tag">
+                        <span class="text-xs text-neutral-400 border border-neutral-200 px-2 py-1 rounded-full" x-text="tag"></span>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+<script>
+function photoGallery() {
+    return {
+        open: false,
+        photo: {},
+        async openModal(id) {
+            const res = await fetch(`/photos/${id}/data`);
+            this.photo = await res.json();
+            this.open = true;
+            document.body.style.overflow = 'hidden';
+        },
+        closeModal() {
+            this.open = false;
+            document.body.style.overflow = '';
+        }
+    }
+}
+</script>
 {% endblock %}

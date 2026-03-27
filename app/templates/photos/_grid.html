@@ -1,10 +1,26 @@
 {% for photo in photos %}
-<a href="/photos/{{ photo.id }}" class="aspect-square overflow-hidden group">
+<div class="aspect-square overflow-hidden group relative cursor-pointer"
+     @click="openModal({{ photo.id }})">
     <img src="{{ photo.thumb_url }}"
          alt="{{ photo.title or '' }}"
          loading="lazy"
          class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
-</a>
+    {% if photo.title or photo.location %}
+    <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition duration-200">
+        <div class="absolute bottom-0 left-0 right-0 p-3">
+            {% if photo.title %}
+            <p class="text-white text-xs font-medium truncate">{{ photo.title }}</p>
+            {% endif %}
+            {% if photo.location %}
+            <p class="text-white/70 text-xs truncate flex items-center gap-1">
+                <svg class="w-3 h-3 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
+                {{ photo.location }}
+            </p>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
 {% else %}
 <p class="col-span-3 text-neutral-400 text-sm py-12 text-center">사진이 없습니다.</p>
 {% endfor %}
