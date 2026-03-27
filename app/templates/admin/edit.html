@@ -34,6 +34,18 @@
             </div>
 
             <div class="flex flex-col gap-1">
+                <label class="text-xs text-neutral-400">위도</label>
+                <input type="text" name="latitude" value="{{ photo.latitude or '' }}" placeholder="예: 37.5665"
+                       class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label class="text-xs text-neutral-400">경도</label>
+                <input type="text" name="longitude" value="{{ photo.longitude or '' }}" placeholder="예: 126.9780"
+                       class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
+            </div>
+
+            <div class="flex flex-col gap-1">
                 <label class="text-xs text-neutral-400">카메라</label>
                 <input type="text" name="camera" value="{{ photo.camera or '' }}"
                        class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">

@@ -170,13 +170,23 @@ async def update_photo(photo_id: int, data: dict, db: AsyncSession) -> Photo | N
         val = data.get(field, "").strip()
         setattr(photo, field, val or None)
 
-    # location이 바뀌었고 GPS가 없으면 forward geocoding
-    new_location = photo.location
-    if new_location and new_location != prev_location:
-        coords = await forward_geocode(new_location)
+    # 좌표 직접 입력값 우선, 없으면 location forward geocoding
+    def _to_float(v):
+        try:
+            return float(v.strip())
+        except (ValueError, AttributeError):
+            return None
+
+    manual_lat = _to_float(data.get("latitude"))
+    manual_lon = _to_float(data.get("longitude"))
+
+    if manual_lat is not None and manual_lon is not None:
+        photo.latitude, photo.longitude = manual_lat, manual_lon
+    elif photo.location and photo.location != prev_location:
+        coords = await forward_geocode(photo.location)
         if coords:
             photo.latitude, photo.longitude = coords
-    elif not new_location:
+    elif not photo.location:
         photo.latitude = None
         photo.longitude = None
     iso = data.get("iso", "").strip()
