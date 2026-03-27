@@ -99,11 +99,11 @@ album_photos
 ### Phase 1 — MVP
 - [x] 프로젝트 스캐폴딩 (uv, FastAPI, Alembic)
 - [x] DB 모델 & 마이그레이션 (photos, albums)
-- [ ] 사진 업로드 API (리사이징 + 썸네일 자동 생성)
-- [ ] EXIF 자동 파싱 (촬영일, 카메라, GPS)
-- [ ] 갤러리 그리드 뷰 (Jinja2 + Tailwind)
-- [ ] 사진 상세 페이지
-- [ ] 어드민 업로드 UI
+- [x] 사진 업로드 API (리사이징 + 썸네일 자동 생성)
+- [x] EXIF 자동 파싱 (촬영일, 카메라, GPS)
+- [x] 갤러리 그리드 뷰 (Jinja2 + Tailwind)
+- [x] 사진 상세 페이지
+- [x] 어드민 업로드 UI (드래그앤드롭, 다중 업로드)
 
 ### Phase 2 — AI 연동
 - [ ] GPT-4o mini Vision 자동 태그 생성
@@ -118,7 +118,8 @@ album_photos
 - [ ] EXIF 정보 오버레이
 
 ### Phase 4 — 인프라
-- [ ] Cloudflare R2 연동 (이미지 CDN)
+- [ ] Cloudflare R2 연동 (Standard 스토리지, 버킷: anyway-photos) — Pi 배포 시점에 진행
+- [ ] 로컬 storage/ → R2 마이그레이션 스크립트
 - [ ] Nginx 리버스 프록시
 - [ ] HTTPS (Let's Encrypt)
 - [ ] Docker Compose 완성
@@ -130,8 +131,9 @@ album_photos
 |---|---|
 | 2026-03-27 | 프로젝트 기획 완료. 스택 확정: FastAPI + Jinja2/HTMX + SQLite + GPT-4o mini |
 | 2026-03-27 | Phase 1 스캐폴딩 완료. FastAPI 서버 구동 확인, DB 마이그레이션 적용 |
+| 2026-03-27 | Phase 1 완료. 업로드 파이프라인(EXIF, 썸네일, 색상팔레트), 어드민 로그인(/manage) 구현 |
 
 ## 미결 사항
 
-- [ ] Cloudflare R2 계정 생성 여부
+- [x] Cloudflare R2 버킷 생성 완료 (Standard, anyway-photos) — Pi 배포 시 코드 연동 예정
 - [ ] OpenAI API 키 준비
