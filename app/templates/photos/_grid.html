@@ -1,0 +1,10 @@
+{% for photo in photos %}
+<a href="/photos/{{ photo.id }}" class="aspect-square overflow-hidden group">
+    <img src="{{ photo.thumb_url }}"
+         alt="{{ photo.title or '' }}"
+         loading="lazy"
+         class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+</a>
+{% else %}
+<p class="col-span-3 text-neutral-400 text-sm py-12 text-center">사진이 없습니다.</p>
+{% endfor %}

@@ -3,32 +3,110 @@
 
 {% block content %}
 {% if photo %}
-<div class="flex flex-col gap-8">
-    <img src="{{ photo.storage_url }}" alt="{{ photo.title or '' }}" class="w-full max-h-[80vh] object-contain">
+<div class="flex flex-col gap-8 max-w-4xl mx-auto">
 
-    <div class="grid grid-cols-2 gap-8 text-sm text-neutral-500">
-        <div class="flex flex-col gap-2">
-            {% if photo.title %}<h2 class="text-neutral-800 text-lg font-light">{{ photo.title }}</h2>{% endif %}
-            {% if photo.description %}<p>{{ photo.description }}</p>{% endif %}
-            {% if photo.location %}<p>{{ photo.location }}</p>{% endif %}
-            {% if photo.taken_at %}<p>{{ photo.taken_at.strftime('%Y.%m.%d') }}</p>{% endif %}
+    {# 뒤로가기 #}
+    <a href="/photos/" class="text-xs text-neutral-400 hover:text-neutral-700 transition">← photos</a>
+
+    {# 원본 이미지 #}
+    <img src="{{ photo.storage_url }}"
+         alt="{{ photo.title or '' }}"
+         class="w-full object-contain rounded">
+
+    <div class="grid md:grid-cols-2 gap-8">
+
+        {# 기본 정보 #}
+        <div class="flex flex-col gap-3">
+            {% if photo.title %}
+            <h2 class="text-xl font-light text-neutral-800">{{ photo.title }}</h2>
+            {% endif %}
+            {% if photo.description %}
+            <p class="text-sm text-neutral-500 leading-relaxed">{{ photo.description }}</p>
+            {% endif %}
+            {% if photo.location %}
+            <p class="text-sm text-neutral-400">📍 {{ photo.location }}</p>
+            {% endif %}
+            {% if photo.taken_at %}
+            <p class="text-sm text-neutral-400">{{ photo.taken_at.strftime('%Y년 %m월 %d일') }}</p>
+            {% endif %}
+
+            {# 색상 팔레트 #}
+            {% if photo.color_palette %}
+            <div class="flex gap-1 mt-2">
+                {% for color in photo.color_palette %}
+                <div class="w-8 h-8 rounded" style="background-color: {{ color }}" title="{{ color }}"></div>
+                {% endfor %}
+            </div>
+            {% endif %}
         </div>
-        <div class="flex flex-col gap-1">
-            {% if photo.camera %}<p>{{ photo.camera }}</p>{% endif %}
-            {% if photo.lens %}<p>{{ photo.lens }}</p>{% endif %}
-            {% if photo.aperture %}<p>f/{{ photo.aperture }}</p>{% endif %}
-            {% if photo.shutter_speed %}<p>{{ photo.shutter_speed }}s</p>{% endif %}
-            {% if photo.iso %}<p>ISO {{ photo.iso }}</p>{% endif %}
+
+        {# EXIF 정보 #}
+        <div class="flex flex-col gap-2 text-sm text-neutral-400">
+            {% if photo.camera %}
+            <div class="flex justify-between">
+                <span class="text-neutral-300">Camera</span>
+                <span>{{ photo.camera }}</span>
+            </div>
+            {% endif %}
+            {% if photo.lens %}
+            <div class="flex justify-between">
+                <span class="text-neutral-300">Lens</span>
+                <span>{{ photo.lens }}</span>
+            </div>
+            {% endif %}
+            {% if photo.aperture %}
+            <div class="flex justify-between">
+                <span class="text-neutral-300">Aperture</span>
+                <span>f/{{ photo.aperture }}</span>
+            </div>
+            {% endif %}
+            {% if photo.shutter_speed %}
+            <div class="flex justify-between">
+                <span class="text-neutral-300">Shutter</span>
+                <span>{{ photo.shutter_speed }}s</span>
+            </div>
+            {% endif %}
+            {% if photo.iso %}
+            <div class="flex justify-between">
+                <span class="text-neutral-300">ISO</span>
+                <span>{{ photo.iso }}</span>
+            </div>
+            {% endif %}
+            {% if photo.width and photo.height %}
+            <div class="flex justify-between">
+                <span class="text-neutral-300">Size</span>
+                <span>{{ photo.width }} × {{ photo.height }}</span>
+            </div>
+            {% endif %}
         </div>
     </div>
 
+    {# AI 태그 #}
     {% if photo.ai_tags %}
     <div class="flex flex-wrap gap-2">
         {% for tag in photo.ai_tags %}
-        <span class="text-xs text-neutral-400 border border-neutral-200 px-2 py-1 rounded-full">{{ tag }}</span>
+        <a href="/photos/?tag={{ tag }}"
+           class="text-xs text-neutral-400 border border-neutral-200 px-3 py-1 rounded-full hover:border-neutral-400 transition">
+            {{ tag }}
+        </a>
         {% endfor %}
     </div>
     {% endif %}
+
+    {# 지도 (GPS 있을 때) #}
+    {% if photo.latitude and photo.longitude %}
+    <div id="map" class="w-full h-64 rounded overflow-hidden"></div>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const map = L.map('map').setView([{{ photo.latitude }}, {{ photo.longitude }}], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+        L.marker([{{ photo.latitude }}, {{ photo.longitude }}]).addTo(map);
+    </script>
+    {% endif %}
+
 </div>
 {% endif %}
 {% endblock %}

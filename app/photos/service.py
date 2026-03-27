@@ -76,9 +76,34 @@ async def create_photo_from_upload(
     return photo
 
 
-async def get_published_photos(db: AsyncSession) -> list[Photo]:
+async def get_published_photos(db: AsyncSession, tag: str | None = None) -> list[Photo]:
+    stmt = select(Photo).where(Photo.is_published == True)
+    if tag:
+        stmt = stmt.where(Photo.ai_tags.contains([tag]))
+    stmt = stmt.order_by(Photo.taken_at.desc().nullslast(), Photo.created_at.desc())
+    result = await db.execute(stmt)
+    return result.scalars().all()
+
+
+async def get_all_tags(db: AsyncSession) -> list[str]:
+    """전체 사진에서 태그 목록 수집 (중복 제거, 알파벳순)"""
     result = await db.execute(
-        select(Photo).where(Photo.is_published == True).order_by(Photo.taken_at.desc().nullslast(), Photo.created_at.desc())
+        select(Photo.ai_tags).where(Photo.is_published == True, Photo.ai_tags.is_not(None))
+    )
+    tag_set = set()
+    for (tags,) in result:
+        if isinstance(tags, list):
+            tag_set.update(tags)
+    return sorted(tag_set)
+
+
+async def get_photos_with_gps(db: AsyncSession) -> list[Photo]:
+    result = await db.execute(
+        select(Photo).where(
+            Photo.is_published == True,
+            Photo.latitude.is_not(None),
+            Photo.longitude.is_not(None),
+        )
     )
     return result.scalars().all()
 

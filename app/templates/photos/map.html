@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}map · DaeHyun Kim{% endblock %}
+
+{% block content %}
+<div class="flex flex-col gap-4">
+    <div class="flex items-center justify-between">
+        <h1 class="text-sm text-neutral-400">{{ photos|length }}개의 위치</h1>
+        <a href="/photos/" class="text-xs text-neutral-400 hover:text-neutral-700 transition">← photos</a>
+    </div>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <div id="map" class="w-full rounded overflow-hidden" style="height: 70vh;"></div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const map = L.map('map');
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        const photos = [
+            {% for photo in photos %}
+            {
+                lat: {{ photo.latitude }},
+                lng: {{ photo.longitude }},
+                id: {{ photo.id }},
+                thumb: "{{ photo.thumb_url }}",
+                title: "{{ photo.title or '' }}",
+                location: "{{ photo.location or '' }}"
+            }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        ];
+
+        const bounds = [];
+        photos.forEach(p => {
+            const marker = L.marker([p.lat, p.lng]).addTo(map);
+            marker.bindPopup(`
+                <a href="/photos/${p.id}">
+                    <img src="${p.thumb}" style="width:120px;height:80px;object-fit:cover;border-radius:4px;">
+                    ${p.location ? `<p style="margin:4px 0 0;font-size:11px;color:#666">${p.location}</p>` : ''}
+                </a>
+            `);
+            bounds.push([p.lat, p.lng]);
+        });
+
+        if (bounds.length > 0) {
+            map.fitBounds(bounds, { padding: [40, 40] });
+        } else {
+            map.setView([36.5, 127.5], 7);
+        }
+    </script>
+</div>
+{% endblock %}

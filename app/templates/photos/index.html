@@ -2,15 +2,36 @@
 {% block title %}photos · DaeHyun Kim{% endblock %}
 
 {% block content %}
-<div class="grid grid-cols-2 md:grid-cols-3 gap-2">
-    {% for photo in photos %}
-    <a href="/photos/{{ photo.id }}" class="aspect-square overflow-hidden group">
-        <img src="{{ photo.thumb_url }}"
-             alt="{{ photo.title or '' }}"
-             class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
-    </a>
-    {% else %}
-    <p class="col-span-3 text-neutral-400 text-sm">아직 사진이 없습니다.</p>
-    {% endfor %}
+<div class="flex flex-col gap-6">
+
+    {# 태그 필터 #}
+    {% if all_tags %}
+    <div class="flex flex-wrap gap-2">
+        <button
+            hx-get="/photos/"
+            hx-target="#grid"
+            hx-push-url="true"
+            class="text-xs px-3 py-1 rounded-full border transition
+                   {% if not active_tag %}border-neutral-800 text-neutral-800{% else %}border-neutral-200 text-neutral-400 hover:border-neutral-400{% endif %}">
+            all
+        </button>
+        {% for tag in all_tags %}
+        <button
+            hx-get="/photos/?tag={{ tag }}"
+            hx-target="#grid"
+            hx-push-url="true"
+            class="text-xs px-3 py-1 rounded-full border transition
+                   {% if active_tag == tag %}border-neutral-800 text-neutral-800{% else %}border-neutral-200 text-neutral-400 hover:border-neutral-400{% endif %}">
+            {{ tag }}
+        </button>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {# 사진 그리드 #}
+    <div id="grid" class="grid grid-cols-2 md:grid-cols-3 gap-2">
+        {% include "photos/_grid.html" %}
+    </div>
+
 </div>
 {% endblock %}
