@@ -18,82 +18,95 @@
     <img src="{{ photo.thumb_url }}" alt="{{ photo.title or '' }}"
          class="w-full max-h-64 object-contain bg-neutral-50 rounded-lg">
 
-    <form method="post" action="/manage/photos/{{ photo.id }}/edit" class="flex flex-col gap-4">
+    <form method="post" action="/manage/photos/{{ photo.id }}/edit" class="flex flex-col gap-6">
 
-        <div class="grid grid-cols-2 gap-3">
-            <div class="col-span-2 flex flex-col gap-1">
-                <label class="text-xs text-neutral-400">제목</label>
-                <input type="text" name="title" value="{{ photo.title or '' }}"
-                       class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
+        {# 기본 정보 #}
+        <div class="flex flex-col gap-3">
+            <p class="text-xs text-neutral-400 uppercase tracking-wider">기본 정보</p>
+            <div class="grid grid-cols-2 gap-3">
+                <div class="col-span-2 flex flex-col gap-1">
+                    <label class="text-xs text-neutral-400">제목</label>
+                    <input type="text" name="title" value="{{ photo.title or '' }}"
+                           class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
+                </div>
+                <div class="col-span-2 flex flex-col gap-1">
+                    <label class="text-xs text-neutral-400">설명</label>
+                    <textarea name="description" rows="3"
+                              class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition resize-none">{{ photo.description or '' }}</textarea>
+                </div>
+                <div class="col-span-2 flex flex-col gap-1">
+                    <label class="text-xs text-neutral-400">태그 <span class="normal-case">(쉼표로 구분)</span></label>
+                    <input type="text" name="ai_tags"
+                           value="{{ (photo.ai_tags or []) | join(', ') }}"
+                           placeholder="예: landscape, city, night"
+                           class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
+                </div>
             </div>
+        </div>
 
-            <div class="col-span-2 flex flex-col gap-1">
-                <label class="text-xs text-neutral-400">위치</label>
-                <input type="text" name="location" value="{{ photo.location or '' }}"
-                       class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
+        {# 촬영 정보 #}
+        <div class="flex flex-col gap-3">
+            <p class="text-xs text-neutral-400 uppercase tracking-wider">촬영 정보</p>
+            <div class="grid grid-cols-2 gap-3">
+                <div class="col-span-2 flex flex-col gap-1">
+                    <label class="text-xs text-neutral-400">촬영일</label>
+                    <input type="date" name="taken_at"
+                           value="{{ photo.taken_at.strftime('%Y-%m-%d') if photo.taken_at else '' }}"
+                           class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
+                </div>
+                <div class="col-span-2 flex flex-col gap-1">
+                    <label class="text-xs text-neutral-400">카메라</label>
+                    <input type="text" name="camera" value="{{ photo.camera or '' }}"
+                           class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
+                </div>
+                <div class="col-span-2 flex flex-col gap-1">
+                    <label class="text-xs text-neutral-400">렌즈</label>
+                    <input type="text" name="lens" value="{{ photo.lens or '' }}"
+                           class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
+                </div>
+                <div class="flex flex-col gap-1">
+                    <label class="text-xs text-neutral-400">초점거리</label>
+                    <input type="text" name="focal_length" value="{{ photo.focal_length or '' }}" placeholder="예: 24mm"
+                           class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
+                </div>
+                <div class="flex flex-col gap-1">
+                    <label class="text-xs text-neutral-400">조리개</label>
+                    <input type="text" name="aperture" value="{{ photo.aperture or '' }}" placeholder="예: 1.8"
+                           class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
+                </div>
+                <div class="flex flex-col gap-1">
+                    <label class="text-xs text-neutral-400">셔터스피드</label>
+                    <input type="text" name="shutter_speed" value="{{ photo.shutter_speed or '' }}" placeholder="예: 1/500"
+                           class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
+                </div>
+                <div class="flex flex-col gap-1">
+                    <label class="text-xs text-neutral-400">ISO</label>
+                    <input type="text" name="iso" value="{{ photo.iso or '' }}"
+                           class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
+                </div>
             </div>
+        </div>
 
-            <div class="flex flex-col gap-1">
-                <label class="text-xs text-neutral-400">위도</label>
-                <input type="text" name="latitude" value="{{ photo.latitude or '' }}" placeholder="예: 37.5665"
-                       class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
-            </div>
-
-            <div class="flex flex-col gap-1">
-                <label class="text-xs text-neutral-400">경도</label>
-                <input type="text" name="longitude" value="{{ photo.longitude or '' }}" placeholder="예: 126.9780"
-                       class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
-            </div>
-
-            <div class="flex flex-col gap-1">
-                <label class="text-xs text-neutral-400">카메라</label>
-                <input type="text" name="camera" value="{{ photo.camera or '' }}"
-                       class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
-            </div>
-
-            <div class="flex flex-col gap-1">
-                <label class="text-xs text-neutral-400">렌즈</label>
-                <input type="text" name="lens" value="{{ photo.lens or '' }}"
-                       class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
-            </div>
-
-            <div class="flex flex-col gap-1">
-                <label class="text-xs text-neutral-400">조리개</label>
-                <input type="text" name="aperture" value="{{ photo.aperture or '' }}" placeholder="예: 1.8"
-                       class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
-            </div>
-
-            <div class="flex flex-col gap-1">
-                <label class="text-xs text-neutral-400">셔터스피드</label>
-                <input type="text" name="shutter_speed" value="{{ photo.shutter_speed or '' }}" placeholder="예: 1/500"
-                       class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
-            </div>
-
-            <div class="flex flex-col gap-1">
-                <label class="text-xs text-neutral-400">ISO</label>
-                <input type="text" name="iso" value="{{ photo.iso or '' }}"
-                       class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
-            </div>
-
-            <div class="flex flex-col gap-1">
-                <label class="text-xs text-neutral-400">촬영일</label>
-                <input type="date" name="taken_at"
-                       value="{{ photo.taken_at.strftime('%Y-%m-%d') if photo.taken_at else '' }}"
-                       class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
-            </div>
-
-            <div class="col-span-2 flex flex-col gap-1">
-                <label class="text-xs text-neutral-400">설명</label>
-                <textarea name="description" rows="3"
-                          class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition resize-none">{{ photo.description or '' }}</textarea>
-            </div>
-
-            <div class="col-span-2 flex flex-col gap-1">
-                <label class="text-xs text-neutral-400">태그 <span class="normal-case">(쉼표로 구분)</span></label>
-                <input type="text" name="ai_tags"
-                       value="{{ (photo.ai_tags or []) | join(', ') }}"
-                       placeholder="예: landscape, city, night"
-                       class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
+        {# 위치 정보 #}
+        <div class="flex flex-col gap-3">
+            <p class="text-xs text-neutral-400 uppercase tracking-wider">위치 정보</p>
+            <div class="grid grid-cols-2 gap-3">
+                <div class="col-span-2 flex flex-col gap-1">
+                    <label class="text-xs text-neutral-400">위치 <span class="normal-case">(저장 시 자동 좌표 변환)</span></label>
+                    <input type="text" name="location" value="{{ photo.location or '' }}"
+                           placeholder="예: Seoul, South Korea"
+                           class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
+                </div>
+                <div class="flex flex-col gap-1">
+                    <label class="text-xs text-neutral-400">위도</label>
+                    <input type="text" name="latitude" value="{{ photo.latitude or '' }}" placeholder="예: 37.5665"
+                           class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
+                </div>
+                <div class="flex flex-col gap-1">
+                    <label class="text-xs text-neutral-400">경도</label>
+                    <input type="text" name="longitude" value="{{ photo.longitude or '' }}" placeholder="예: 126.9780"
+                           class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
+                </div>
             </div>
         </div>
 
@@ -103,7 +116,7 @@
             공개
         </label>
 
-        <div class="flex gap-3 pt-2">
+        <div class="flex gap-3">
             <button type="submit"
                     class="flex-1 bg-neutral-800 text-white text-sm py-2 rounded hover:bg-neutral-700 transition">
                 저장

@@ -55,6 +55,11 @@ def extract_exif(image_path: Path) -> dict:
     if iso:
         result["iso"] = iso
 
+    # 초점거리
+    fl = ifd.get(piexif.ExifIFD.FocalLength)
+    if fl:
+        result["focal_length"] = f"{round(fl[0] / fl[1], 1)}mm"
+
     # GPS
     if gps:
         lat = _dms_to_decimal(gps.get(piexif.GPSIFD.GPSLatitude), gps.get(piexif.GPSIFD.GPSLatitudeRef))

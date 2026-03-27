@@ -166,7 +166,7 @@ async def update_photo(photo_id: int, data: dict, db: AsyncSession) -> Photo | N
         return None
     from datetime import datetime
     prev_location = photo.location
-    for field in ("title", "description", "location", "camera", "lens", "aperture", "shutter_speed"):
+    for field in ("title", "description", "location", "camera", "lens", "focal_length", "aperture", "shutter_speed"):
         val = data.get(field, "").strip()
         setattr(photo, field, val or None)
 

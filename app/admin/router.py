@@ -175,6 +175,7 @@ async def edit_photo(
     location: str = Form(""),
     camera: str = Form(""),
     lens: str = Form(""),
+    focal_length: str = Form(""),
     aperture: str = Form(""),
     shutter_speed: str = Form(""),
     iso: str = Form(""),
@@ -190,7 +191,7 @@ async def edit_photo(
         return _
     data = {
         "title": title, "description": description, "location": location,
-        "camera": camera, "lens": lens, "aperture": aperture,
+        "camera": camera, "lens": lens, "focal_length": focal_length, "aperture": aperture,
         "shutter_speed": shutter_speed, "iso": iso,
         "taken_at": taken_at, "is_published": is_published,
         "ai_tags": ai_tags,

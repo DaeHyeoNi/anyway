@@ -21,6 +21,7 @@ class Photo(Base):
     longitude: Mapped[float | None] = mapped_column(Float)
     camera: Mapped[str | None] = mapped_column(String)
     lens: Mapped[str | None] = mapped_column(String)
+    focal_length: Mapped[str | None] = mapped_column(String)
     aperture: Mapped[str | None] = mapped_column(String)
     shutter_speed: Mapped[str | None] = mapped_column(String)
     iso: Mapped[int | None] = mapped_column(Integer)
