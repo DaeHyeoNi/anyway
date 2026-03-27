@@ -110,6 +110,29 @@ async def reverse_geocode(lat: float, lon: float) -> str | None:
         return None
 
 
+async def forward_geocode(location: str) -> tuple[float, float] | None:
+    """지명 → 위경도 (Nominatim)"""
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(
+                "https://nominatim.openstreetmap.org/search",
+                params={"q": location, "format": "json", "limit": 1},
+                headers={"User-Agent": "anyway-photo-site/1.0 (daehyeoni.dev)"},
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            if not data:
+                logger.warning("forward_geocode no result for: %s", location)
+                return None
+            lat = float(data[0]["lat"])
+            lon = float(data[0]["lon"])
+            logger.info("forward_geocode %r → (%s, %s)", location, lat, lon)
+            return lat, lon
+    except Exception as e:
+        logger.warning("forward_geocode failed for %r: %s", location, e)
+        return None
+
+
 def extract_color_palette(image_path: Path, n: int = 5) -> list[str]:
     """대표 색상 n개를 HEX 문자열로 반환"""
     try:

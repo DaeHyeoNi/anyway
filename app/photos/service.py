@@ -5,7 +5,7 @@ from PIL import Image, ImageOps
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from app.ai.analyzer import extract_color_palette, extract_exif, reverse_geocode
+from app.ai.analyzer import extract_color_palette, extract_exif, forward_geocode, reverse_geocode
 from app.ai.tagger import generate_tags
 from app.config import settings
 from app.photos.models import Photo
@@ -165,9 +165,20 @@ async def update_photo(photo_id: int, data: dict, db: AsyncSession) -> Photo | N
     if not photo:
         return None
     from datetime import datetime
+    prev_location = photo.location
     for field in ("title", "description", "location", "camera", "lens", "aperture", "shutter_speed"):
         val = data.get(field, "").strip()
         setattr(photo, field, val or None)
+
+    # location이 바뀌었고 GPS가 없으면 forward geocoding
+    new_location = photo.location
+    if new_location and new_location != prev_location:
+        coords = await forward_geocode(new_location)
+        if coords:
+            photo.latitude, photo.longitude = coords
+    elif not new_location:
+        photo.latitude = None
+        photo.longitude = None
     iso = data.get("iso", "").strip()
     photo.iso = int(iso) if iso.isdigit() else None
     taken_at = data.get("taken_at", "").strip()
