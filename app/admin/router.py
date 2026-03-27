@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.deps import RequireAdmin
 from app.config import settings
 from app.database import get_db
-from app.photos.service import create_photo_from_upload
+from app.photos.service import create_photo_from_upload, get_all_photos_admin, update_photo, delete_photo
 
 router = APIRouter(prefix="/manage", tags=["admin"])
 templates = Jinja2Templates(directory="app/templates")
@@ -138,3 +138,67 @@ async def upload_photo(
             "error": "\n".join(errors) if errors else None,
         },
     )
+
+
+@router.get("/photos")
+async def photo_list(request: Request, _=Depends(require_admin), db: AsyncSession = Depends(get_db)):
+    if isinstance(_, RedirectResponse):
+        return _
+    photos = await get_all_photos_admin(db)
+    return templates.TemplateResponse(request, "admin/photos.html", {"photos": photos})
+
+
+@router.get("/photos/{photo_id}/edit")
+async def edit_page(photo_id: int, request: Request, _=Depends(require_admin), db: AsyncSession = Depends(get_db)):
+    if isinstance(_, RedirectResponse):
+        return _
+    from app.photos.service import get_photo
+    photo = await get_photo(photo_id, db)
+    if not photo:
+        return RedirectResponse("/manage/photos", status_code=302)
+    return templates.TemplateResponse(request, "admin/edit.html", {"photo": photo, "success": None, "error": None})
+
+
+@router.post("/photos/{photo_id}/edit")
+async def edit_photo(
+    photo_id: int,
+    request: Request,
+    title: str = Form(""),
+    description: str = Form(""),
+    location: str = Form(""),
+    camera: str = Form(""),
+    lens: str = Form(""),
+    aperture: str = Form(""),
+    shutter_speed: str = Form(""),
+    iso: str = Form(""),
+    taken_at: str = Form(""),
+    is_published: str = Form(""),
+    _=Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    if isinstance(_, RedirectResponse):
+        return _
+    data = {
+        "title": title, "description": description, "location": location,
+        "camera": camera, "lens": lens, "aperture": aperture,
+        "shutter_speed": shutter_speed, "iso": iso,
+        "taken_at": taken_at, "is_published": is_published,
+    }
+    photo = await update_photo(photo_id, data, db)
+    from app.photos.service import get_photo
+    return templates.TemplateResponse(
+        request, "admin/edit.html",
+        {"photo": photo, "success": "저장됐습니다." if photo else None, "error": None}
+    )
+
+
+@router.post("/photos/{photo_id}/delete")
+async def delete_photo_route(
+    photo_id: int,
+    _=Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    if isinstance(_, RedirectResponse):
+        return _
+    await delete_photo(photo_id, db)
+    return RedirectResponse("/manage/photos", status_code=302)

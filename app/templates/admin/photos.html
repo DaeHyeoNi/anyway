@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}사진 관리 · DaeHyun Kim{% endblock %}
+
+{% block content %}
+<div class="flex flex-col gap-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-lg font-light text-neutral-700">사진 관리 <span class="text-sm text-neutral-400">({{ photos|length }}장)</span></h1>
+        <div class="flex gap-3">
+            <a href="/manage/photos/upload" class="text-xs text-neutral-400 hover:text-neutral-700 transition">+ 업로드</a>
+            <a href="/manage" class="text-xs text-neutral-400 hover:text-neutral-700 transition">← 대시보드</a>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        {% for photo in photos %}
+        <div class="group relative border border-neutral-100 rounded-lg overflow-hidden">
+            <div class="aspect-square overflow-hidden bg-neutral-50">
+                <img src="{{ photo.thumb_url }}" alt="{{ photo.title or '' }}"
+                     class="w-full h-full object-cover">
+            </div>
+
+            {% if not photo.is_published %}
+            <span class="absolute top-2 left-2 text-xs bg-neutral-800 text-white px-2 py-0.5 rounded">비공개</span>
+            {% endif %}
+
+            <div class="p-2 flex flex-col gap-0.5">
+                <p class="text-xs font-medium text-neutral-700 truncate">{{ photo.title or '(제목 없음)' }}</p>
+                <p class="text-xs text-neutral-400 truncate">{{ photo.location or '-' }}</p>
+            </div>
+
+            <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-3">
+                <a href="/manage/photos/{{ photo.id }}/edit"
+                   class="bg-white text-neutral-800 text-xs px-3 py-1.5 rounded hover:bg-neutral-100 transition">
+                    수정
+                </a>
+                <form method="post" action="/manage/photos/{{ photo.id }}/delete"
+                      onsubmit="return confirm('삭제하면 복구할 수 없습니다.')">
+                    <button type="submit"
+                            class="bg-red-500 text-white text-xs px-3 py-1.5 rounded hover:bg-red-600 transition">
+                        삭제
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% else %}
+        <p class="col-span-4 text-neutral-400 text-sm py-12 text-center">사진이 없습니다.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

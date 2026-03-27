@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}사진 수정 · DaeHyun Kim{% endblock %}
+
+{% block content %}
+<div class="flex flex-col gap-6 max-w-lg">
+    <div class="flex items-center justify-between">
+        <h1 class="text-lg font-light text-neutral-700">사진 수정</h1>
+        <a href="/manage/photos" class="text-xs text-neutral-400 hover:text-neutral-700 transition">← 목록</a>
+    </div>
+
+    {% if success %}
+    <p class="text-sm text-green-600">{{ success }}</p>
+    {% endif %}
+    {% if error %}
+    <p class="text-sm text-red-500">{{ error }}</p>
+    {% endif %}
+
+    <img src="{{ photo.thumb_url }}" alt="{{ photo.title or '' }}"
+         class="w-full max-h-64 object-contain bg-neutral-50 rounded-lg">
+
+    <form method="post" action="/manage/photos/{{ photo.id }}/edit" class="flex flex-col gap-4">
+
+        <div class="grid grid-cols-2 gap-3">
+            <div class="col-span-2 flex flex-col gap-1">
+                <label class="text-xs text-neutral-400">제목</label>
+                <input type="text" name="title" value="{{ photo.title or '' }}"
+                       class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
+            </div>
+
+            <div class="col-span-2 flex flex-col gap-1">
+                <label class="text-xs text-neutral-400">위치</label>
+                <input type="text" name="location" value="{{ photo.location or '' }}"
+                       class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label class="text-xs text-neutral-400">카메라</label>
+                <input type="text" name="camera" value="{{ photo.camera or '' }}"
+                       class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label class="text-xs text-neutral-400">렌즈</label>
+                <input type="text" name="lens" value="{{ photo.lens or '' }}"
+                       class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label class="text-xs text-neutral-400">조리개</label>
+                <input type="text" name="aperture" value="{{ photo.aperture or '' }}" placeholder="예: 1.8"
+                       class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label class="text-xs text-neutral-400">셔터스피드</label>
+                <input type="text" name="shutter_speed" value="{{ photo.shutter_speed or '' }}" placeholder="예: 1/500"
+                       class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label class="text-xs text-neutral-400">ISO</label>
+                <input type="text" name="iso" value="{{ photo.iso or '' }}"
+                       class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label class="text-xs text-neutral-400">촬영일</label>
+                <input type="date" name="taken_at"
+                       value="{{ photo.taken_at.strftime('%Y-%m-%d') if photo.taken_at else '' }}"
+                       class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
+            </div>
+
+            <div class="col-span-2 flex flex-col gap-1">
+                <label class="text-xs text-neutral-400">설명</label>
+                <textarea name="description" rows="3"
+                          class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition resize-none">{{ photo.description or '' }}</textarea>
+            </div>
+        </div>
+
+        <label class="flex items-center gap-2 text-sm text-neutral-600 cursor-pointer">
+            <input type="checkbox" name="is_published" {% if photo.is_published %}checked{% endif %}
+                   class="rounded border-neutral-300">
+            공개
+        </label>
+
+        <div class="flex gap-3 pt-2">
+            <button type="submit"
+                    class="flex-1 bg-neutral-800 text-white text-sm py-2 rounded hover:bg-neutral-700 transition">
+                저장
+            </button>
+            <form method="post" action="/manage/photos/{{ photo.id }}/delete"
+                  onsubmit="return confirm('삭제하면 복구할 수 없습니다.')">
+                <button type="submit"
+                        class="bg-red-50 text-red-500 border border-red-200 text-sm px-4 py-2 rounded hover:bg-red-100 transition">
+                    삭제
+                </button>
+            </form>
+        </div>
+    </form>
+</div>
+{% endblock %}

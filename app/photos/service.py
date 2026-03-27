@@ -133,3 +133,49 @@ async def get_photos_with_gps(db: AsyncSession) -> list[Photo]:
 async def get_photo(photo_id: int, db: AsyncSession) -> Photo | None:
     result = await db.execute(select(Photo).where(Photo.id == photo_id))
     return result.scalar_one_or_none()
+
+
+async def get_all_photos_admin(db: AsyncSession) -> list[Photo]:
+    result = await db.execute(
+        select(Photo).order_by(Photo.created_at.desc())
+    )
+    return result.scalars().all()
+
+
+async def update_photo(photo_id: int, data: dict, db: AsyncSession) -> Photo | None:
+    photo = await get_photo(photo_id, db)
+    if not photo:
+        return None
+    from datetime import datetime
+    for field in ("title", "description", "location", "camera", "lens", "aperture", "shutter_speed"):
+        val = data.get(field, "").strip()
+        setattr(photo, field, val or None)
+    iso = data.get("iso", "").strip()
+    photo.iso = int(iso) if iso.isdigit() else None
+    taken_at = data.get("taken_at", "").strip()
+    if taken_at:
+        try:
+            photo.taken_at = datetime.strptime(taken_at, "%Y-%m-%d")
+        except ValueError:
+            pass
+    else:
+        photo.taken_at = None
+    photo.is_published = data.get("is_published") == "on"
+    await db.commit()
+    await db.refresh(photo)
+    return photo
+
+
+async def delete_photo(photo_id: int, db: AsyncSession) -> bool:
+    photo = await get_photo(photo_id, db)
+    if not photo:
+        return False
+    storage = Path(settings.storage_path)
+    for path in (
+        storage / "originals" / photo.filename,
+        storage / "thumbnails" / photo.filename,
+    ):
+        path.unlink(missing_ok=True)
+    await db.delete(photo)
+    await db.commit()
+    return True
