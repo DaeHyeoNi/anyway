@@ -4,7 +4,7 @@ from fastapi.responses import RedirectResponse
 
 def get_current_admin(request: Request):
     if not request.session.get("is_admin"):
-        raise HTTPException(status_code=302, headers={"Location": "/admin/login"})
+        raise HTTPException(status_code=302, headers={"Location": "/manage/login"})
     return True
 
 
@@ -13,4 +13,4 @@ class RequireAdmin:
 
     async def __call__(self, request: Request):
         if not request.session.get("is_admin"):
-            return RedirectResponse("/admin/login", status_code=302)
+            return RedirectResponse("/manage/login", status_code=302)
