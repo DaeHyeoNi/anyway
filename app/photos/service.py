@@ -11,21 +11,8 @@ from app.config import settings
 from app.photos.models import Photo
 
 
-ALLOWED_FORMATS = {"JPEG", "PNG", "WEBP", "HEIF"}
+ALLOWED_FORMATS = {"JPEG", "PNG", "WEBP", "HEIF", "MPO"}
 THUMB_SIZE = (800, 800)
-
-
-def _detect_content_type(file_bytes: bytes, original_filename: str) -> str:
-    """Pillow로 실제 이미지 포맷 감지"""
-    try:
-        import io
-        with Image.open(io.BytesIO(file_bytes)) as img:
-            fmt = img.format or ""
-            mapping = {"JPEG": "image/jpeg", "PNG": "image/png", "WEBP": "image/webp", "HEIF": "image/heic"}
-            return mapping.get(fmt, f"image/{fmt.lower()}")
-    except Exception:
-        ext = Path(original_filename).suffix.lower().lstrip(".")
-        return f"image/{ext}" if ext else "application/octet-stream"
 
 
 async def create_photo_from_upload(
@@ -34,15 +21,12 @@ async def create_photo_from_upload(
     original_filename: str,
     db: AsyncSession,
 ) -> Photo:
-    # 브라우저가 octet-stream으로 보낼 경우 실제 포맷 감지
-    if content_type in ("application/octet-stream", ""):
-        content_type = _detect_content_type(file_bytes, original_filename)
 
+    import io
     try:
-        import io
-        with Image.open(io.BytesIO(file_bytes)) as img:
-            if img.format not in ALLOWED_FORMATS:
-                raise ValueError(f"지원하지 않는 파일 형식: {img.format}")
+        with Image.open(io.BytesIO(file_bytes)) as probe:
+            if probe.format not in ALLOWED_FORMATS:
+                raise ValueError(f"지원하지 않는 이미지 형식: {probe.format}")
     except ValueError:
         raise
     except Exception:
