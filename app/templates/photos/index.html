@@ -6,25 +6,25 @@
      x-data="photoGallery()"
      @keydown.escape.window="closeModal()">
 
-    {# 태그 필터 #}
-    {% if all_tags %}
+    {# 나라 필터 #}
+    {% if all_countries %}
     <div class="flex flex-wrap gap-2">
         <button
             hx-get="/photos/"
             hx-target="#grid"
             hx-push-url="true"
             class="text-xs px-3 py-1 rounded-full border transition
-                   {% if not active_tag %}border-neutral-800 text-neutral-800{% else %}border-neutral-200 text-neutral-400 hover:border-neutral-400{% endif %}">
+                   {% if not active_country %}border-neutral-800 text-neutral-800{% else %}border-neutral-200 text-neutral-400 hover:border-neutral-400{% endif %}">
             all
         </button>
-        {% for tag in all_tags %}
+        {% for c in all_countries %}
         <button
-            hx-get="/photos/?tag={{ tag }}"
+            hx-get="/photos/?country={{ c | urlencode }}"
             hx-target="#grid"
             hx-push-url="true"
             class="text-xs px-3 py-1 rounded-full border transition
-                   {% if active_tag == tag %}border-neutral-800 text-neutral-800{% else %}border-neutral-200 text-neutral-400 hover:border-neutral-400{% endif %}">
-            {{ tag }}
+                   {% if active_country == c %}border-neutral-800 text-neutral-800{% else %}border-neutral-200 text-neutral-400 hover:border-neutral-400{% endif %}">
+            {{ c }}
         </button>
         {% endfor %}
     </div>

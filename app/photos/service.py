@@ -98,25 +98,27 @@ async def create_photo_from_upload(
     return photo
 
 
-async def get_published_photos(db: AsyncSession, tag: str | None = None) -> list[Photo]:
+async def get_published_photos(db: AsyncSession, country: str | None = None) -> list[Photo]:
     stmt = select(Photo).where(Photo.is_published == True)
-    if tag:
-        stmt = stmt.where(Photo.ai_tags.contains([tag]))
+    if country:
+        stmt = stmt.where(Photo.location.ilike(f"%{country}"))
     stmt = stmt.order_by(Photo.taken_at.desc().nullslast(), Photo.id.desc())
     result = await db.execute(stmt)
     return result.scalars().all()
 
 
-async def get_all_tags(db: AsyncSession) -> list[str]:
-    """전체 사진에서 태그 목록 수집 (중복 제거, 알파벳순)"""
+async def get_all_countries(db: AsyncSession) -> list[str]:
+    """location 마지막 쉼표 뒤 나라명 추출 (중복 제거, 알파벳순)"""
     result = await db.execute(
-        select(Photo.ai_tags).where(Photo.is_published == True, Photo.ai_tags.is_not(None))
+        select(Photo.location).where(Photo.is_published == True, Photo.location.is_not(None))
     )
-    tag_set = set()
-    for (tags,) in result:
-        if isinstance(tags, list):
-            tag_set.update(tags)
-    return sorted(tag_set)
+    country_set = set()
+    for (location,) in result:
+        if location and "," in location:
+            country = location.rsplit(",", 1)[-1].strip()
+            if country:
+                country_set.add(country)
+    return sorted(country_set)
 
 
 async def get_photos_with_gps(db: AsyncSession) -> list[Photo]:
