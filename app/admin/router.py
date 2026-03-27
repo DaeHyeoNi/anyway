@@ -1,7 +1,7 @@
 import hmac
 import logging
 
-from fastapi import APIRouter, Depends, Form, Request, UploadFile, File
+from fastapi import APIRouter, BackgroundTasks, Depends, Form, Request, UploadFile, File
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,7 +11,7 @@ from app.auth.deps import RequireAdmin
 logger = logging.getLogger(__name__)
 from app.config import settings
 from app.database import get_db
-from app.photos.service import create_photo_from_upload, get_all_photos_admin, update_photo, delete_photo
+from app.photos.service import create_photo_from_upload, get_all_photos_admin, update_photo, delete_photo, tag_and_cleanup
 
 router = APIRouter(prefix="/manage", tags=["admin"])
 templates = Jinja2Templates(directory="app/templates")
@@ -101,6 +101,7 @@ async def read_exif(
 @router.post("/photos/upload")
 async def upload_photo(
     request: Request,
+    background_tasks: BackgroundTasks,
     files: list[UploadFile] = File(...),
     title: str = Form(""),
     location: str = Form(""),
@@ -131,13 +132,14 @@ async def upload_photo(
             if not content:
                 errors.append(f"{file.filename}: 파일이 비어있습니다 (0 bytes)")
                 continue
-            await create_photo_from_upload(
+            photo, orig_path = await create_photo_from_upload(
                 file_bytes=content,
                 content_type=file.content_type,
                 original_filename=file.filename,
                 db=db,
                 meta_override=meta_override,
             )
+            background_tasks.add_task(tag_and_cleanup, photo.id, orig_path)
             count += 1
         except Exception as e:
             errors.append(f"{file.filename}: {e}")

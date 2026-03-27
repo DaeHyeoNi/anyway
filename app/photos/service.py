@@ -24,7 +24,7 @@ async def create_photo_from_upload(
     original_filename: str,
     db: AsyncSession,
     meta_override: dict | None = None,
-) -> Photo:
+) -> tuple[Photo, Path]:
 
     import io
     try:
@@ -70,16 +70,10 @@ async def create_photo_from_upload(
     if "latitude" in exif and "longitude" in exif:
         location = await reverse_geocode(exif["latitude"], exif["longitude"])
 
-    # AI 태깅 (API 키 없으면 스킵)
-    tags = await generate_tags(orig_path)
-
-    # R2 업로드 (설정된 경우)
+    # R2 업로드 (설정된 경우) — 로컬 파일은 AI 태깅 후 백그라운드에서 삭제
     if is_r2_enabled():
         storage_url = await upload_file(f"originals/{filename}", file_bytes, "image/jpeg")
         thumb_url = await upload_file(f"thumbnails/{filename}", thumb_bytes, "image/jpeg")
-        # 로컬 파일 제거
-        orig_path.unlink(missing_ok=True)
-        thumb_path.unlink(missing_ok=True)
     else:
         storage_url = f"/storage/originals/{filename}"
         thumb_url = f"/storage/thumbnails/{filename}"
@@ -94,7 +88,7 @@ async def create_photo_from_upload(
         height=height,
         file_size=len(file_bytes),
         color_palette=palette if palette else None,
-        ai_tags=tags if tags else None,
+        ai_tags=None,
         location=location or override.get("location") or None,
         title=override.get("title") or None,
         description=override.get("description") or None,
@@ -113,7 +107,24 @@ async def create_photo_from_upload(
     db.add(photo)
     await db.commit()
     await db.refresh(photo)
-    return photo
+    return photo, orig_path
+
+
+async def tag_and_cleanup(photo_id: int, orig_path: Path) -> None:
+    """백그라운드: AI 태깅 후 R2 사용 시 로컬 파일 정리"""
+    from app.database import AsyncSessionLocal
+    try:
+        tags = await generate_tags(orig_path)
+        async with AsyncSessionLocal() as db:
+            photo = await get_photo(photo_id, db)
+            if photo:
+                photo.ai_tags = tags or None
+                await db.commit()
+    finally:
+        if is_r2_enabled():
+            storage = Path(settings.storage_path)
+            (storage / "originals" / orig_path.name).unlink(missing_ok=True)
+            (storage / "thumbnails" / orig_path.name).unlink(missing_ok=True)
 
 
 async def get_published_photos(db: AsyncSession, country: str | None = None) -> list[Photo]:
