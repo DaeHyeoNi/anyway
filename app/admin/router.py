@@ -180,6 +180,7 @@ async def edit_photo(
     iso: str = Form(""),
     taken_at: str = Form(""),
     is_published: str = Form(""),
+    ai_tags: str = Form(""),
     _=Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
@@ -190,6 +191,7 @@ async def edit_photo(
         "camera": camera, "lens": lens, "aperture": aperture,
         "shutter_speed": shutter_speed, "iso": iso,
         "taken_at": taken_at, "is_published": is_published,
+        "ai_tags": ai_tags,
     }
     photo = await update_photo(photo_id, data, db)
     from app.photos.service import get_photo

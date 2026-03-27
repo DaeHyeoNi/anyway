@@ -163,6 +163,8 @@ async def update_photo(photo_id: int, data: dict, db: AsyncSession) -> Photo | N
     else:
         photo.taken_at = None
     photo.is_published = data.get("is_published") == "on"
+    tags_raw = data.get("ai_tags", "").strip()
+    photo.ai_tags = [t.strip() for t in tags_raw.split(",") if t.strip()] or None
     await db.commit()
     await db.refresh(photo)
     return photo
