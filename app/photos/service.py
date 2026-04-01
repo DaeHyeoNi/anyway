@@ -65,9 +65,11 @@ async def create_photo_from_upload(
     # 색상 팔레트
     palette = extract_color_palette(orig_path)
 
-    # GPS → 지명 변환
+    override = meta_override or {}
+
+    # GPS → 지명 변환 (meta_override에 location 이미 있으면 스킵)
     location = None
-    if "latitude" in exif and "longitude" in exif:
+    if not override.get("location") and "latitude" in exif and "longitude" in exif:
         location = await reverse_geocode(exif["latitude"], exif["longitude"])
 
     # R2 업로드 (설정된 경우) — 로컬 파일은 AI 태깅 후 백그라운드에서 삭제
@@ -77,9 +79,6 @@ async def create_photo_from_upload(
     else:
         storage_url = f"/storage/originals/{filename}"
         thumb_url = f"/storage/thumbnails/{filename}"
-
-    # 수동 입력값으로 EXIF 빈 필드 보완 (EXIF 우선)
-    override = meta_override or {}
     photo = Photo(
         filename=filename,
         storage_url=storage_url,
@@ -95,10 +94,10 @@ async def create_photo_from_upload(
         is_published=True,
         **{k: v for k, v in exif.items() if v is not None},
     )
-    # EXIF에 없는 카메라/날짜는 수동 입력으로 채움
-    if not photo.camera and override.get("camera"):
+    # 수동 입력값이 있으면 EXIF보다 우선 적용
+    if override.get("camera"):
         photo.camera = override["camera"]
-    if not photo.taken_at and override.get("taken_at"):
+    if override.get("taken_at"):
         from datetime import datetime
         try:
             photo.taken_at = datetime.strptime(override["taken_at"], "%Y-%m-%d")

@@ -93,7 +93,7 @@ async def reverse_geocode(lat: float, lon: float) -> str | None:
             resp = await client.get(
                 "https://nominatim.openstreetmap.org/reverse",
                 params={"lat": lat, "lon": lon, "format": "json", "zoom": 10},
-                headers={"User-Agent": "anyway-photo-site/1.0 (daehyeoni.dev)"},
+                headers={"User-Agent": "anyway-photo-site/1.0 (daehyeoni.dev)", "Accept-Language": "en"},
             )
             resp.raise_for_status()
             data = resp.json()
@@ -122,7 +122,7 @@ async def forward_geocode(location: str) -> tuple[float, float] | None:
             resp = await client.get(
                 "https://nominatim.openstreetmap.org/search",
                 params={"q": location, "format": "json", "limit": 1},
-                headers={"User-Agent": "anyway-photo-site/1.0 (daehyeoni.dev)"},
+                headers={"User-Agent": "anyway-photo-site/1.0 (daehyeoni.dev)", "Accept-Language": "en"},
             )
             resp.raise_for_status()
             data = resp.json()
