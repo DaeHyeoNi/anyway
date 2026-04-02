@@ -1,3 +1,6 @@
+import asyncio
+import io
+import logging
 import uuid
 from pathlib import Path
 
@@ -13,9 +16,25 @@ from app.config import settings
 from app.photos.models import Photo
 from app.storage import delete_file, is_r2_enabled, upload_file
 
+logger = logging.getLogger(__name__)
+
 
 ALLOWED_FORMATS = {"JPEG", "PNG", "WEBP", "HEIF", "MPO"}
 THUMB_SIZE = (800, 800)
+
+
+def _make_thumbnail(orig_path: Path, thumb_path: Path) -> tuple[bytes, int, int]:
+    """동기 함수: 썸네일 생성 후 (thumb_bytes, width, height) 반환"""
+    with Image.open(orig_path) as img:
+        img = ImageOps.exif_transpose(img)
+        width, height = img.size
+        thumb_buf = io.BytesIO()
+        thumb = img.copy()
+        thumb.thumbnail(THUMB_SIZE, Image.LANCZOS)
+        thumb.save(thumb_buf, format="JPEG", quality=85, optimize=True)
+        thumb_bytes = thumb_buf.getvalue()
+        thumb_path.write_bytes(thumb_bytes)
+    return thumb_bytes, width, height
 
 
 async def create_photo_from_upload(
@@ -26,7 +45,6 @@ async def create_photo_from_upload(
     meta_override: dict | None = None,
 ) -> tuple[Photo, Path]:
 
-    import io
     try:
         with Image.open(io.BytesIO(file_bytes)) as probe:
             if probe.format not in ALLOWED_FORMATS:
@@ -45,25 +63,16 @@ async def create_photo_from_upload(
     thumb_path = storage / "thumbnails" / filename
 
     # 원본 저장 (로컬 — EXIF/썸네일 처리용)
-    orig_path.write_bytes(file_bytes)
+    await asyncio.to_thread(orig_path.write_bytes, file_bytes)
 
     # 썸네일 생성
-    import io as _io
-    with Image.open(orig_path) as img:
-        img = ImageOps.exif_transpose(img)  # EXIF 회전 보정
-        width, height = img.size
-        thumb_buf = _io.BytesIO()
-        thumb = img.copy()
-        thumb.thumbnail(THUMB_SIZE, Image.LANCZOS)
-        thumb.save(thumb_buf, format="JPEG", quality=85, optimize=True)
-        thumb_bytes = thumb_buf.getvalue()
-        thumb_path.write_bytes(thumb_bytes)
+    thumb_bytes, width, height = await asyncio.to_thread(_make_thumbnail, orig_path, thumb_path)
 
     # EXIF 파싱
-    exif = extract_exif(orig_path)
+    exif = await asyncio.to_thread(extract_exif, orig_path)
 
     # 색상 팔레트
-    palette = extract_color_palette(orig_path)
+    palette = await asyncio.to_thread(extract_color_palette, orig_path)
 
     override = meta_override or {}
 
@@ -119,6 +128,8 @@ async def tag_and_cleanup(photo_id: int, orig_path: Path) -> None:
             if photo:
                 photo.ai_tags = tags or None
                 await db.commit()
+    except Exception as e:
+        logger.error("AI 태깅 실패 (photo_id=%d): %s", photo_id, e)
     finally:
         if is_r2_enabled():
             storage = Path(settings.storage_path)

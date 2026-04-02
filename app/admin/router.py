@@ -51,15 +51,11 @@ async def logout(request: Request):
 
 @router.get("")
 async def dashboard(request: Request, _=Depends(require_admin)):
-    if isinstance(_, RedirectResponse):
-        return _
     return templates.TemplateResponse(request, "admin/dashboard.html", {})
 
 
 @router.get("/photos/upload")
 async def upload_page(request: Request, _=Depends(require_admin)):
-    if isinstance(_, RedirectResponse):
-        return _
     return templates.TemplateResponse(request, "admin/upload.html", {"error": None, "success": None})
 
 
@@ -69,8 +65,6 @@ async def read_exif(
     _=Depends(require_admin),
 ):
     """파일 선택 시 EXIF 파싱 결과 반환 (폼 자동 채우기용)"""
-    if isinstance(_, RedirectResponse):
-        return {}
     from pathlib import Path
     from app.ai.analyzer import extract_exif, reverse_geocode
     import tempfile, shutil
@@ -111,9 +105,6 @@ async def upload_photo(
     db: AsyncSession = Depends(get_db),
     _=Depends(require_admin),
 ):
-    if isinstance(_, RedirectResponse):
-        return _
-
     meta_override = {
         "title": title.strip(),
         "location": location.strip(),
@@ -156,16 +147,12 @@ async def upload_photo(
 
 @router.get("/photos")
 async def photo_list(request: Request, _=Depends(require_admin), db: AsyncSession = Depends(get_db)):
-    if isinstance(_, RedirectResponse):
-        return _
     photos = await get_all_photos_admin(db)
     return templates.TemplateResponse(request, "admin/photos.html", {"photos": photos})
 
 
 @router.get("/photos/{photo_id}/edit")
 async def edit_page(photo_id: int, request: Request, _=Depends(require_admin), db: AsyncSession = Depends(get_db)):
-    if isinstance(_, RedirectResponse):
-        return _
     from app.photos.service import get_photo
     photo = await get_photo(photo_id, db)
     if not photo:
@@ -194,8 +181,6 @@ async def edit_photo(
     _=Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    if isinstance(_, RedirectResponse):
-        return _
     data = {
         "title": title, "description": description, "location": location,
         "camera": camera, "lens": lens, "focal_length": focal_length, "aperture": aperture,
@@ -218,7 +203,5 @@ async def delete_photo_route(
     _=Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    if isinstance(_, RedirectResponse):
-        return _
     await delete_photo(photo_id, db)
     return RedirectResponse("/manage/photos", status_code=302)
