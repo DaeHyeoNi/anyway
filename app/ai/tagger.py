@@ -17,7 +17,8 @@ def _get_client() -> genai.Client:
     return _client
 
 
-SYSTEM_PROMPT = f"""You are a photography tagging assistant. Today is {date.today()}.
+def _get_system_prompt() -> str:
+    return f"""You are a photography tagging assistant. Today is {date.today()}.
 Analyze the provided photo and return relevant tags only.
 
 Rules:
@@ -41,7 +42,7 @@ async def generate_tags(image_path: Path) -> list[str]:
         model=settings.gemini_model,
         contents=[
             types.Part.from_bytes(data=image_bytes, mime_type=mime),
-            SYSTEM_PROMPT,
+            _get_system_prompt(),
         ],
         config=types.GenerateContentConfig(
             temperature=0,

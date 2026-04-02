@@ -83,7 +83,7 @@ async def create_photo_from_upload(
 
     # R2 업로드 (설정된 경우) — 로컬 파일은 AI 태깅 후 백그라운드에서 삭제
     if is_r2_enabled():
-        storage_url = await upload_file(f"originals/{filename}", file_bytes, "image/jpeg")
+        storage_url = await upload_file(f"originals/{filename}", file_bytes, content_type)
         thumb_url = await upload_file(f"thumbnails/{filename}", thumb_bytes, "image/jpeg")
     else:
         storage_url = f"/storage/originals/{filename}"
@@ -140,7 +140,8 @@ async def tag_and_cleanup(photo_id: int, orig_path: Path) -> None:
 async def get_published_photos(db: AsyncSession, country: str | None = None) -> list[Photo]:
     stmt = select(Photo).where(Photo.is_published == True)
     if country:
-        stmt = stmt.where(Photo.location.ilike(f"%{country}"))
+        safe_country = country.replace("%", r"\%").replace("_", r"\_")
+        stmt = stmt.where(Photo.location.ilike(f"%{safe_country}", escape="\\"))
     stmt = stmt.order_by(Photo.taken_at.desc().nullslast(), Photo.id.desc())
     result = await db.execute(stmt)
     return result.scalars().all()

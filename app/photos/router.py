@@ -59,4 +59,6 @@ async def photo_data(photo_id: int, db: AsyncSession = Depends(get_db)):
 @router.get("/{photo_id}")
 async def photo_detail(photo_id: int, request: Request, db: AsyncSession = Depends(get_db)):
     photo = await get_photo(photo_id, db)
+    if not photo:
+        raise HTTPException(status_code=404)
     return templates.TemplateResponse(request, "photos/detail.html", {"photo": photo})
