@@ -41,7 +41,7 @@ def extract_exif(image_path: Path) -> dict:
 
     # 조리개
     fnumber = ifd.get(piexif.ExifIFD.FNumber)
-    if fnumber:
+    if fnumber and fnumber[1] != 0:
         result["aperture"] = str(round(fnumber[0] / fnumber[1], 1))
 
     # 셔터스피드
@@ -57,7 +57,7 @@ def extract_exif(image_path: Path) -> dict:
 
     # 초점거리
     fl = ifd.get(piexif.ExifIFD.FocalLength)
-    if fl:
+    if fl and fl[1] != 0:
         result["focal_length"] = f"{round(fl[0] / fl[1], 1)}mm"
 
     # GPS

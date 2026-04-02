@@ -63,6 +63,8 @@ async def create_photo_from_upload(
     thumb_path = storage / "thumbnails" / filename
 
     # 원본 저장 (로컬 — EXIF/썸네일 처리용)
+    orig_path.parent.mkdir(parents=True, exist_ok=True)
+    thumb_path.parent.mkdir(parents=True, exist_ok=True)
     await asyncio.to_thread(orig_path.write_bytes, file_bytes)
 
     # 썸네일 생성

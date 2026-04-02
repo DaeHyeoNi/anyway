@@ -1,4 +1,5 @@
 import json
+import logging
 from datetime import date
 from pathlib import Path
 
@@ -6,6 +7,8 @@ from google import genai
 from google.genai import types
 
 from app.config import settings
+
+logger = logging.getLogger(__name__)
 
 _client: genai.Client | None = None
 
@@ -38,17 +41,21 @@ async def generate_tags(image_path: Path) -> list[str]:
     mime = "image/jpeg" if suffix in (".jpg", ".jpeg") else f"image/{suffix.lstrip('.')}"
 
     client = _get_client()
-    response = await client.aio.models.generate_content(
-        model=settings.gemini_model,
-        contents=[
-            types.Part.from_bytes(data=image_bytes, mime_type=mime),
-            _get_system_prompt(),
-        ],
-        config=types.GenerateContentConfig(
-            temperature=0,
-            max_output_tokens=200,
-        ),
-    )
+    try:
+        response = await client.aio.models.generate_content(
+            model=settings.gemini_model,
+            contents=[
+                types.Part.from_bytes(data=image_bytes, mime_type=mime),
+                _get_system_prompt(),
+            ],
+            config=types.GenerateContentConfig(
+                temperature=0,
+                max_output_tokens=200,
+            ),
+        )
+    except Exception as e:
+        logger.error("Gemini API 호출 실패: %s", e)
+        return []
 
     raw = response.text.strip()
     try:

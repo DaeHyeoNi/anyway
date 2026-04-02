@@ -43,7 +43,7 @@ async def login(
     )
 
 
-@router.get("/logout")
+@router.post("/logout")
 async def logout(request: Request):
     request.session.clear()
     return RedirectResponse("/manage/login", status_code=302)
