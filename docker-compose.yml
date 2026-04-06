@@ -8,3 +8,4 @@ services:
     volumes:
       - ./storage:/app/storage
       - ./anyway.db:/app/anyway.db
+      - ./app:/app/app
