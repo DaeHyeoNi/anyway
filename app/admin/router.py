@@ -11,7 +11,7 @@ from app.auth.deps import RequireAdmin
 logger = logging.getLogger(__name__)
 from app.config import settings
 from app.database import get_db
-from app.photos.service import create_photo_from_upload, get_all_photos_admin, update_photo, delete_photo, tag_and_cleanup
+from app.photos.service import create_photo_from_upload, get_all_photos_admin, update_photo, delete_photo, process_photo_pipeline
 
 router = APIRouter(prefix="/manage", tags=["admin"])
 templates = Jinja2Templates(directory="app/templates")
@@ -130,7 +130,7 @@ async def upload_photo(
                 db=db,
                 meta_override=meta_override,
             )
-            background_tasks.add_task(tag_and_cleanup, photo.id, orig_path)
+            background_tasks.add_task(process_photo_pipeline, photo.id, orig_path, content, file.content_type)
             count += 1
         except Exception as e:
             errors.append(f"{file.filename}: {e}")

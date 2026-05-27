@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     secret_key: str = "change-me-in-production"
 
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-3.1-flash-preview"
+    gemini_model: str = "gemini-3.5-flash"
 
     openai_api_key: str = ""
 
