@@ -62,7 +62,23 @@ async def generate_tags(image_path: Path) -> list[str]:
         logger.error("Gemini API 호출 실패: %s", e)
         return []
 
-    raw = response.text.strip()
+    # 1. response.parsed가 구조화된 출력(response_schema)에 의해 이미 파싱 완료되어 있다면 즉시 사용
+    try:
+        parsed_val = getattr(response, "parsed", None)
+        if parsed_val is not None:
+            if isinstance(parsed_val, list):
+                logger.info("Gemini 응답이 response.parsed를 통해 즉시 파이썬 리스트로 확보되었습니다: %r", parsed_val)
+                return [str(t).lower() for t in parsed_val if t]
+    except Exception as parse_err:
+        logger.warning("response.parsed 확인 실패: %s", parse_err)
+
+    # 2. response.text가 None일 가능성에 완전 대비
+    text_val = getattr(response, "text", None)
+    if text_val is None:
+        logger.warning("Gemini 응답의 text 필드가 None입니다. (parsed: %r)", getattr(response, "parsed", None))
+        return []
+
+    raw = text_val.strip()
     
     # 1차 디펜스: 만약 응답에 마크다운 백틱 펜스(```json ...)가 포함된 경우 디펜스 정제 실행
     if "```" in raw:
