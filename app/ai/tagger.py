@@ -22,14 +22,13 @@ def _get_client() -> genai.Client:
 
 def _get_system_prompt() -> str:
     return f"""You are a photography tagging assistant. Today is {date.today()}.
-Analyze the provided photo and return relevant tags only.
+Analyze the provided photo and return a JSON array of lowercase English tags.
 
 Rules:
-- Return ONLY a JSON array of lowercase English tags, nothing else
+- Return a JSON array of lowercase English tags describing the image.
 - Use only information visible in the image — no inference or fabrication
 - Include: subject, mood, lighting, season, weather, location type if identifiable
-- 8 to 15 tags per image
-- Example: ["landscape", "mountains", "golden hour", "misty", "autumn", "wide angle"]"""
+- Generate between 8 and 15 tags per image, all in lowercase English."""
 
 
 async def generate_tags(image_path: Path) -> list[str]:
@@ -44,21 +43,21 @@ async def generate_tags(image_path: Path) -> list[str]:
     try:
         response = await client.aio.models.generate_content(
             model=settings.gemini_model,
-            contents=[
-                types.Part.from_bytes(data=image_bytes, mime_type=mime),
-                _get_system_prompt(),
-            ],
+            contents=types.Part.from_bytes(data=image_bytes, mime_type=mime),
             config=types.GenerateContentConfig(
-                temperature=0,
-                max_output_tokens=300,
+                system_instruction=_get_system_prompt(),
+                temperature=0.2,
+                max_output_tokens=500,
                 response_mime_type="application/json",
+                response_schema=list[str],
+                thinking_config=types.ThinkingConfig(thinking_budget=0),
             ),
         )
     except Exception as e:
         logger.error("Gemini API 호출 실패: %s", e)
         return []
 
-    # 1. response.parsed가 혹시라도 확보되어 있다면 우선 사용 (하이브리드 대응)
+    # 1. response.parsed가 구조화된 출력(response_schema)에 의해 이미 파싱 완료되어 있다면 즉시 사용
     try:
         parsed_val = getattr(response, "parsed", None)
         if parsed_val is not None:
@@ -68,14 +67,15 @@ async def generate_tags(image_path: Path) -> list[str]:
     except Exception as parse_err:
         logger.warning("response.parsed 확인 실패: %s", parse_err)
 
-    # 2. response.text 안전하게 추출
+    # 2. response.text 안전하게 추출 및 파싱 fallback
     text_val = getattr(response, "text", None)
     if text_val is None:
         logger.warning("Gemini 응답의 text 필드가 None입니다. 상세 응답 객체: %r", response)
         return []
 
     raw = text_val.strip()
-    
+    logger.info("Gemini AI 원시 응답 텍스트: %r", raw)
+
     # 1차 디펜스: 만약 응답에 마크다운 백틱 펜스(```json ...)가 포함된 경우 디펜스 정제 실행
     if "```" in raw:
         import re
@@ -97,4 +97,5 @@ async def generate_tags(image_path: Path) -> list[str]:
     except json.JSONDecodeError as jde:
         logger.error("Gemini 응답 JSON 파싱 실패 (원시 데이터: %r): %s", raw, jde)
         pass
+
     return []
