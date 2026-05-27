@@ -49,6 +49,7 @@ async def create_photo_from_upload(
         with Image.open(io.BytesIO(file_bytes)) as probe:
             if probe.format not in ALLOWED_FORMATS:
                 raise ValueError(f"지원하지 않는 이미지 형식: {probe.format}")
+            width, height = probe.size
     except ValueError:
         raise
     except Exception as e:
@@ -60,36 +61,18 @@ async def create_photo_from_upload(
 
     storage = Path(settings.storage_path)
     orig_path = storage / "originals" / filename
-    thumb_path = storage / "thumbnails" / filename
 
-    # 원본 저장 (로컬 — EXIF/썸네일 처리용)
+    # 원본 저장 (로컬 — EXIF/썸네일/태깅 처리용)
     orig_path.parent.mkdir(parents=True, exist_ok=True)
-    thumb_path.parent.mkdir(parents=True, exist_ok=True)
+    (storage / "thumbnails").mkdir(parents=True, exist_ok=True)
     await asyncio.to_thread(orig_path.write_bytes, file_bytes)
-
-    # 썸네일 생성
-    thumb_bytes, width, height = await asyncio.to_thread(_make_thumbnail, orig_path, thumb_path)
-
-    # EXIF 파싱
-    exif = await asyncio.to_thread(extract_exif, orig_path)
-
-    # 색상 팔레트
-    palette = await asyncio.to_thread(extract_color_palette, orig_path)
 
     override = meta_override or {}
 
-    # GPS → 지명 변환 (meta_override에 location 이미 있으면 스킵)
-    location = None
-    if not override.get("location") and "latitude" in exif and "longitude" in exif:
-        location = await reverse_geocode(exif["latitude"], exif["longitude"])
+    # 우선 임시 로컬 스토리지 경로로 저장 (R2를 사용하더라도 백그라운드에서 완료 시 URL을 업데이트할 예정)
+    storage_url = f"/storage/originals/{filename}"
+    thumb_url = f"/storage/thumbnails/{filename}"
 
-    # R2 업로드 (설정된 경우) — 로컬 파일은 AI 태깅 후 백그라운드에서 삭제
-    if is_r2_enabled():
-        storage_url = await upload_file(f"originals/{filename}", file_bytes, content_type)
-        thumb_url = await upload_file(f"thumbnails/{filename}", thumb_bytes, "image/jpeg")
-    else:
-        storage_url = f"/storage/originals/{filename}"
-        thumb_url = f"/storage/thumbnails/{filename}"
     photo = Photo(
         filename=filename,
         storage_url=storage_url,
@@ -97,31 +80,120 @@ async def create_photo_from_upload(
         width=width,
         height=height,
         file_size=len(file_bytes),
-        color_palette=palette if palette else None,
+        color_palette=None,
         ai_tags=None,
-        location=location or override.get("location") or None,
+        location=override.get("location") or None,
         title=override.get("title") or None,
         description=override.get("description") or None,
         is_published=True,
-        **{k: v for k, v in exif.items() if v is not None},
+        camera=override.get("camera") or None,
     )
-    # 수동 입력값이 있으면 EXIF보다 우선 적용
-    if override.get("camera"):
-        photo.camera = override["camera"]
+
     if override.get("taken_at"):
         from datetime import datetime
         try:
             photo.taken_at = datetime.strptime(override["taken_at"], "%Y-%m-%d")
         except ValueError:
             pass
+
     db.add(photo)
     await db.commit()
     await db.refresh(photo)
     return photo, orig_path
 
 
+async def process_photo_pipeline(
+    photo_id: int,
+    orig_path: Path,
+    file_bytes: bytes,
+    content_type: str,
+) -> None:
+    """백그라운드 비차단 파이프라인:
+    1. 썸네일 생성 및 로컬 저장
+    2. EXIF 파싱
+    3. 색상 팔레트 추출
+    4. GPS -> 지명 변환 (reverse geocoding)
+    5. Cloudflare R2 업로드 (설정 시) 및 storage_url / thumb_url 갱신
+    6. Gemini AI 태깅
+    7. DB 업데이트
+    8. R2 활성화 시 로컬 임시 원본 및 썸네일 파일 삭제 정리
+    """
+    from app.database import AsyncSessionLocal
+    
+    storage = Path(settings.storage_path)
+    thumb_path = storage / "thumbnails" / orig_path.name
+    thumb_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    try:
+        # 1. 썸네일 생성
+        thumb_bytes, width, height = await asyncio.to_thread(_make_thumbnail, orig_path, thumb_path)
+        
+        # 2. EXIF 파싱
+        exif = await asyncio.to_thread(extract_exif, orig_path)
+        
+        # 3. 색상 팔레트 추출
+        palette = await asyncio.to_thread(extract_color_palette, orig_path)
+        
+        # 4. GPS -> 지명 변환 (Nominatim reverse geocode)
+        location = None
+        
+        # 5. R2 업로드 (설정된 경우)
+        storage_url = None
+        thumb_url = None
+        if is_r2_enabled():
+            storage_url = await upload_file(f"originals/{orig_path.name}", file_bytes, content_type)
+            thumb_url = await upload_file(f"thumbnails/{orig_path.name}", thumb_bytes, "image/jpeg")
+            
+        # 6. Gemini AI 태깅
+        ai_tags = await generate_tags(orig_path)
+        
+        # 7. DB 최종 업데이트
+        async with AsyncSessionLocal() as db:
+            photo = await get_photo(photo_id, db)
+            if photo:
+                # EXIF 자동 정보 적용 (수동 입력값 보존)
+                for k, v in exif.items():
+                    if v is not None:
+                        if getattr(photo, k) is None:
+                            setattr(photo, k, v)
+                            
+                # GPS 정보가 있을 때, 수동 지정한 location이 없다면 reverse geocode 실행
+                if "latitude" in exif and "longitude" in exif and not photo.location:
+                    location = await reverse_geocode(exif["latitude"], exif["longitude"])
+                    if location:
+                        photo.location = location
+                
+                if palette:
+                    photo.color_palette = palette
+                if ai_tags:
+                    photo.ai_tags = ai_tags
+                if storage_url:
+                    photo.storage_url = storage_url
+                if thumb_url:
+                    photo.thumb_url = thumb_url
+                    
+                photo.width = width
+                photo.height = height
+                
+                await db.commit()
+                logger.info("Photo %d background pipeline completed successfully.", photo_id)
+                
+    except Exception as e:
+        logger.error("백그라운드 처리 실패 (photo_id=%d): %s", photo_id, e)
+        
+    finally:
+        # 8. R2 사용 시 로컬 원본/썸네일 삭제 정리
+        if is_r2_enabled():
+            try:
+                orig_path.unlink(missing_ok=True)
+                thumb_path.unlink(missing_ok=True)
+                logger.info("Local cleaned up for photo %d", photo_id)
+            except Exception as clean_err:
+                logger.warning("로컬 파일 정리 실패: %s", clean_err)
+
+
 async def tag_and_cleanup(photo_id: int, orig_path: Path) -> None:
-    """백그라운드: AI 태깅 후 R2 사용 시 로컬 파일 정리"""
+    """하위 호환성 및 테스트 통과용: AI 태깅 후 R2 사용 시 로컬 파일 정리"""
     from app.database import AsyncSessionLocal
     try:
         tags = await generate_tags(orig_path)
