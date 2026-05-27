@@ -51,6 +51,7 @@ async def generate_tags(image_path: Path) -> list[str]:
             config=types.GenerateContentConfig(
                 temperature=0,
                 max_output_tokens=200,
+                response_mime_type="application/json",
             ),
         )
     except Exception as e:
@@ -58,10 +59,19 @@ async def generate_tags(image_path: Path) -> list[str]:
         return []
 
     raw = response.text.strip()
+    
+    # 만약 응답에 마크다운 백틱 펜스(```json ...)가 포함된 경우 디펜스 정제 실행
+    if "```" in raw:
+        import re
+        match = re.search(r'```(?:json)?\s*(.*?)\s*```', raw, re.DOTALL)
+        if match:
+            raw = match.group(1).strip()
+
     try:
         tags = json.loads(raw)
         if isinstance(tags, list):
             return [str(t).lower() for t in tags if isinstance(t, str)]
-    except json.JSONDecodeError:
+    except json.JSONDecodeError as jde:
+        logger.error("Gemini 응답 JSON 파싱 실패 (원시 데이터: %r): %s", raw, jde)
         pass
     return []
