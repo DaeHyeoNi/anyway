@@ -52,17 +52,13 @@ async def generate_tags(image_path: Path) -> list[str]:
                 temperature=0,
                 max_output_tokens=300,
                 response_mime_type="application/json",
-                response_schema=types.Schema(
-                    type=types.Type.ARRAY,
-                    items=types.Schema(type=types.Type.STRING)
-                )
             ),
         )
     except Exception as e:
         logger.error("Gemini API 호출 실패: %s", e)
         return []
 
-    # 1. response.parsed가 구조화된 출력(response_schema)에 의해 이미 파싱 완료되어 있다면 즉시 사용
+    # 1. response.parsed가 혹시라도 확보되어 있다면 우선 사용 (하이브리드 대응)
     try:
         parsed_val = getattr(response, "parsed", None)
         if parsed_val is not None:
@@ -72,10 +68,10 @@ async def generate_tags(image_path: Path) -> list[str]:
     except Exception as parse_err:
         logger.warning("response.parsed 확인 실패: %s", parse_err)
 
-    # 2. response.text가 None일 가능성에 완전 대비
+    # 2. response.text 안전하게 추출
     text_val = getattr(response, "text", None)
     if text_val is None:
-        logger.warning("Gemini 응답의 text 필드가 None입니다. (parsed: %r)", getattr(response, "parsed", None))
+        logger.warning("Gemini 응답의 text 필드가 None입니다. 상세 응답 객체: %r", response)
         return []
 
     raw = text_val.strip()
