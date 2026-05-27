@@ -50,8 +50,12 @@ async def generate_tags(image_path: Path) -> list[str]:
             ],
             config=types.GenerateContentConfig(
                 temperature=0,
-                max_output_tokens=200,
+                max_output_tokens=300,
                 response_mime_type="application/json",
+                response_schema=types.Schema(
+                    type=types.Type.ARRAY,
+                    items=types.Schema(type=types.Type.STRING)
+                )
             ),
         )
     except Exception as e:
@@ -60,10 +64,17 @@ async def generate_tags(image_path: Path) -> list[str]:
 
     raw = response.text.strip()
     
-    # 만약 응답에 마크다운 백틱 펜스(```json ...)가 포함된 경우 디펜스 정제 실행
+    # 1차 디펜스: 만약 응답에 마크다운 백틱 펜스(```json ...)가 포함된 경우 디펜스 정제 실행
     if "```" in raw:
         import re
         match = re.search(r'```(?:json)?\s*(.*?)\s*```', raw, re.DOTALL)
+        if match:
+            raw = match.group(1).strip()
+
+    # 2차 디펜스: 혹시 모를 pre-amble 설명 문구 차단 및 JSON Array 영역([ ... ])만 강제 발췌
+    if not raw.startswith("["):
+        import re
+        match = re.search(r'(\[.*?\])', raw, re.DOTALL)
         if match:
             raw = match.group(1).strip()
 
