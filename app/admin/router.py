@@ -220,8 +220,11 @@ async def regenerate_photo_tags(
     from app.photos.service import get_photo
     from app.ai.tagger import generate_tags
 
+    logger.info("[REGENERATE TAGS] 시작 - photo_id: %d", photo_id)
+
     photo = await get_photo(photo_id, db)
     if not photo:
+        logger.warning("[REGENERATE TAGS] 실패 - DB에 존재하지 않는 사진입니다. photo_id: %d", photo_id)
         return RedirectResponse("/manage/photos", status_code=302)
 
     # 1. 파일 경로 확인 및 이미지 분석 준비
@@ -233,12 +236,14 @@ async def regenerate_photo_tags(
 
     try:
         if local_orig_path.exists():
+            logger.info("[REGENERATE TAGS] 로컬 원본 파일 발견. 경로: %s", local_orig_path)
             tags = await generate_tags(local_orig_path)
         else:
             # R2 등 리모트 스토리지 사용 중으로 인해 로컬 파일이 없는 경우,
             # photo.storage_url로부터 이미지를 임시 Fetch하여 분석합니다.
+            url = photo.storage_url
+            logger.info("[REGENERATE TAGS] 로컬 파일 없음 -> 리모트 스토리지 URL에서 Fetch 시도: %s", url)
             async with httpx.AsyncClient(timeout=20) as client:
-                url = photo.storage_url
                 resp = await client.get(url)
                 resp.raise_for_status()
                 image_bytes = resp.content
@@ -247,25 +252,32 @@ async def regenerate_photo_tags(
                 tmp.write(image_bytes)
                 tmp_path = Path(tmp.name)
 
+            logger.info("[REGENERATE TAGS] 리모트 이미지 Fetch 성공. 크기: %d bytes. 임시 경로: %s", len(image_bytes), tmp_path)
             tags = await generate_tags(tmp_path)
 
         if tags:
             photo.ai_tags = tags
             await db.commit()
             await db.refresh(photo)
+            logger.info("[REGENERATE TAGS] 성공 - 태그가 데이터베이스에 반영되었습니다. photo_id: %d, 태그: %r", photo_id, tags)
             success_msg = "AI 태그가 성공적으로 재생성되었습니다."
             error_msg = None
         else:
+            logger.warning("[REGENERATE TAGS] AI 분석 완료되었으나 태그가 빈 값으로 반환되었습니다. photo_id: %d", photo_id)
             success_msg = None
             error_msg = "Gemini AI 태그 재생성에 실패했습니다. API 키 및 모델 설정을 확인하세요."
 
     except Exception as e:
-        logger.error("AI 태그 재생성 오류 (photo_id=%d): %s", photo_id, e)
+        logger.error("[REGENERATE TAGS] 예외 에러 발생 - photo_id: %d, 에러: %s", photo_id, e, exc_info=True)
         success_msg = None
         error_msg = f"태그 재생성 중 에러가 발생했습니다: {e}"
     finally:
         if tmp_path and tmp_path.exists():
-            tmp_path.unlink(missing_ok=True)
+            try:
+                tmp_path.unlink(missing_ok=True)
+                logger.info("[REGENERATE TAGS] 임시 격리 이미지 파일 삭제 완료. 경로: %s", tmp_path)
+            except Exception as clean_err:
+                logger.warning("[REGENERATE TAGS] 임시 이미지 정리 오류: %s", clean_err)
 
     return templates.TemplateResponse(
         request,
