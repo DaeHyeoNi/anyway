@@ -36,10 +36,17 @@
                 </div>
                 <div class="col-span-2 flex flex-col gap-1">
                     <label class="text-xs text-neutral-400">태그 <span class="normal-case">(쉼표로 구분)</span></label>
-                    <input type="text" name="ai_tags"
-                           value="{{ (photo.ai_tags or []) | join(', ') }}"
-                           placeholder="예: landscape, city, night"
-                           class="border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
+                    <div class="flex gap-2">
+                        <input type="text" name="ai_tags"
+                               value="{{ (photo.ai_tags or []) | join(', ') }}"
+                               placeholder="예: landscape, city, night"
+                               class="flex-1 border border-neutral-200 rounded px-3 py-2 text-sm outline-none focus:border-neutral-400 transition">
+                        <button type="button"
+                                onclick="regenerateTags()"
+                                class="bg-neutral-100 hover:bg-neutral-200 text-neutral-600 text-xs px-3 py-2 rounded transition whitespace-nowrap flex items-center justify-center">
+                            AI 태그 재생성
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -121,14 +128,30 @@
                     class="flex-1 bg-neutral-800 text-white text-sm py-2 rounded hover:bg-neutral-700 transition">
                 저장
             </button>
-            <form method="post" action="/manage/photos/{{ photo.id }}/delete"
-                  onsubmit="return confirm('삭제하면 복구할 수 없습니다.')">
-                <button type="submit"
-                        class="bg-red-50 text-red-500 border border-red-200 text-sm px-4 py-2 rounded hover:bg-red-100 transition">
-                    삭제
-                </button>
-            </form>
+            <button type="button"
+                    onclick="deletePhoto()"
+                    class="bg-red-50 text-red-500 border border-red-200 text-sm px-4 py-2 rounded hover:bg-red-100 transition">
+                삭제
+            </button>
         </div>
     </form>
+
+    {# 분리된 삭제 및 AI 태그 재생성 폼 배치 #}
+    <form id="delete-form" method="post" action="/manage/photos/{{ photo.id }}/delete" class="hidden"></form>
+    <form id="regenerate-tags-form" method="post" action="/manage/photos/{{ photo.id }}/regenerate-tags" class="hidden"></form>
+
+    <script>
+    function deletePhoto() {
+        if (confirm('삭제하면 복구할 수 없습니다.')) {
+            document.getElementById('delete-form').submit();
+        }
+    }
+
+    function regenerateTags() {
+        if (confirm('AI 태그를 다시 생성하시겠습니까? 기존 태그가 대체됩니다.')) {
+            document.getElementById('regenerate-tags-form').submit();
+        }
+    }
+    </script>
 </div>
 {% endblock %}
