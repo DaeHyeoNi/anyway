@@ -205,3 +205,70 @@ async def delete_photo_route(
 ):
     await delete_photo(photo_id, db)
     return RedirectResponse("/manage/photos", status_code=302)
+
+
+@router.post("/photos/{photo_id}/regenerate-tags")
+async def regenerate_photo_tags(
+    photo_id: int,
+    request: Request,
+    _=Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    from pathlib import Path
+    import tempfile
+    import httpx
+    from app.photos.service import get_photo
+    from app.ai.tagger import generate_tags
+
+    photo = await get_photo(photo_id, db)
+    if not photo:
+        return RedirectResponse("/manage/photos", status_code=302)
+
+    # 1. 파일 경로 확인 및 이미지 분석 준비
+    storage_path = Path(settings.storage_path)
+    local_orig_path = storage_path / "originals" / photo.filename
+
+    tmp_path = None
+    tags = []
+
+    try:
+        if local_orig_path.exists():
+            tags = await generate_tags(local_orig_path)
+        else:
+            # R2 등 리모트 스토리지 사용 중으로 인해 로컬 파일이 없는 경우,
+            # photo.storage_url로부터 이미지를 임시 Fetch하여 분석합니다.
+            async with httpx.AsyncClient(timeout=20) as client:
+                url = photo.storage_url
+                resp = await client.get(url)
+                resp.raise_for_status()
+                image_bytes = resp.content
+
+            with tempfile.NamedTemporaryFile(suffix=Path(photo.filename).suffix, delete=False) as tmp:
+                tmp.write(image_bytes)
+                tmp_path = Path(tmp.name)
+
+            tags = await generate_tags(tmp_path)
+
+        if tags:
+            photo.ai_tags = tags
+            await db.commit()
+            await db.refresh(photo)
+            success_msg = "AI 태그가 성공적으로 재생성되었습니다."
+            error_msg = None
+        else:
+            success_msg = None
+            error_msg = "Gemini AI 태그 재생성에 실패했습니다. API 키 및 모델 설정을 확인하세요."
+
+    except Exception as e:
+        logger.error("AI 태그 재생성 오류 (photo_id=%d): %s", photo_id, e)
+        success_msg = None
+        error_msg = f"태그 재생성 중 에러가 발생했습니다: {e}"
+    finally:
+        if tmp_path and tmp_path.exists():
+            tmp_path.unlink(missing_ok=True)
+
+    return templates.TemplateResponse(
+        request,
+        "admin/edit.html",
+        {"photo": photo, "success": success_msg, "error": error_msg},
+    )
