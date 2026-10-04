@@ -1,2 +1,2 @@
 #!/bin/sh
-docker compose logs app -f
+docker compose logs app --tail=100 -f
